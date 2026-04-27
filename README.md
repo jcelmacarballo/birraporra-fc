@@ -12,21 +12,13 @@ La porra dels teus colegues - L'app de porres de futbol per jugar amb els amics!
 
 ---
 
-## 🔐 Admin
-
-La contrasenya admin per defecte és: `gol2024`
-
-Pots canviar-la al codi (constants `CFG.ADMIN_PASS`)
-
----
-
 ## ⚙️ Configuració personalitzada
 
 Obri `src/App.jsx` i busca:
 
 ```javascript
 const CFG = {
-  ADMIN_PASS: "gol2024",           // Contrasenya admin
+  ADMIN_PASS: "x",                 // Contrasenya admin
   ENTRY_EUR: 2.50,                 // Entrada per partido
   START_BIRRAS: 50,                // Birras inicials
   BEER_EUR: 2.50,                  // Preu birra real
