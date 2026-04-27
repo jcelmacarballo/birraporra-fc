@@ -1,0 +1,92 @@
+🚀 INSTRUCCIONES RÁPIDAS PARA PUBLICAR BIRRAPORRA FC
+
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: PREPARA GitHub (2 minutos)
+───────────────────────────────────
+
+1. Abre https://github.com/new
+2. Nombre: "birraporra-fc"
+3. Selecciona "Public"
+4. NO inicialices con README
+5. Click "Create repository"
+
+Ahora tienes tu repo vacío. Vamos a subir los archivos.
+
+
+PASO 2: SUBE LOS ARCHIVOS (3 minutos)
+────────────────────────────────────
+
+En tu computadora, abre la Terminal/CMD y ve a la carpeta del proyecto:
+
+cd birraporra-fc  (o donde hayas descomprimido los archivos)
+
+Luego ejecuta EXACTAMENTE esto:
+
+git init
+git add .
+git commit -m "Initial commit: BirraporraFC v1.5"
+git branch -M main
+git remote add origin https://github.com/TU_USUARIO/birraporra-fc.git
+git push -u origin main
+
+⚠️  Cambia "TU_USUARIO" por tu usuario real de GitHub
+
+
+PASO 3: DEPLOY A VERCEL (1 minuto)
+──────────────────────────────────
+
+1. Abre https://vercel.com
+2. Click "Sign Up" → "Continue with GitHub"
+3. Autoriza Vercel
+4. Click "Import Project"
+5. Selecciona "birraporra-fc"
+6. Click "Deploy"
+
+¡LISTO! En 30 segundos tienes tu URL pública:
+https://birraporra-fc.vercel.app (el nombre variará)
+
+
+PASO 4: COMPARTE CON TUS AMIGOS
+────────────────────────────────
+
+Copia la URL de Vercel y comparte en WhatsApp.
+
+CADA VEZ que hagas cambios en GitHub, Vercel se actualiza automáticamente.
+
+═══════════════════════════════════════════════════════════════════════════════
+
+¿NECESITAS AYUDA?
+
+❌ "Git command not found"
+   → Instala Git: https://git-scm.com/download
+
+❌ "GitHub dice 'fatal: not a git repository'"
+   → Asegúrate de estar en la carpeta correcta (cd birraporra-fc)
+
+❌ "Vercel dice 'Build failed'"
+   → En las settings de Vercel, cambia Node.js a versión 18+
+
+❌ "Los datos no se guardan"
+   → Normal. Cada navegador/dispositivo guarda sus propios datos locales.
+   → Solución: Acceder todos desde el MISMO navegador/dispositivo
+
+═══════════════════════════════════════════════════════════════════════════════
+
+PERSONALIZACIÓN
+
+Si quieres cambiar la contraseña admin o los valores de dinero:
+
+1. Abre "src/App.jsx" en un editor
+2. Busca "const CFG = {"
+3. Cambia los valores que quieras:
+   - ADMIN_PASS: "gol2024" → Tu contraseña
+   - ENTRY_EUR: 2.50 → Entrada por partido
+   - START_BIRRAS: 50 → Birras iniciales
+   etc.
+4. Guarda, haz git commit y push
+5. Vercel se actualiza automáticamente
+
+═══════════════════════════════════════════════════════════════════════════════
+
+¡A JUGAR! 🍺⚽
