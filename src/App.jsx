@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef } from "react";
-import { db } from "./supabase.js";
+import { supabase, db, auth } from "./supabase.js";
 
 // ─────────────────────────── 1. CONFIG ────────────────────────────────────
 const CFG = {
@@ -22,9 +22,9 @@ const CFG = {
 };
 
 const C = {
-  bg: "#0a0907", card: "#16110a", card2: "#1e1810", border: "#2e2618",
-  gold: "#f5b800", amber: "#c88800", muted: "#80746a", txt: "#f5eed8",
-  red: "#e03838", green: "#38b858", blue: "#5299d6", purple: "#a855f7",
+  bg: "#041a0a", card: "#062310", card2: "#0d3318", border: "#164d24",
+  gold: "#f5c518", amber: "#d4a017", muted: "#4db86a", txt: "#f0e8d0",
+  red: "#c8102e", green: "#1d9e75", blue: "#5299d6", purple: "#a855f7",
   rose: "#f43f5e", cyan: "#22d3ee",
 };
 
@@ -46,6 +46,9 @@ const KEYS = {
 
 async function dbGet(k) { try { return await db.get(k); } catch { return null; } }
 async function dbSet(k, v) { try { await db.set(k, v); } catch (e) { console.error("dbSet error", e); } }
+
+// ID fix de l'únic grup global del Mundial. Tots els usuaris pertanyen aquí.
+const MUNDIAL_GROUP_ID = "mundial_2026";
 
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const hash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i); return String(h >>> 0); };
@@ -143,7 +146,86 @@ function EmojiPicker({ value, onChange, compact }) {
   );
 }
 
-// ─────────────────────────── 5. LOGIN SCREEN ──────────────────────────────
+// ─────────────────────────── 5. SUPABASE LOGIN SCREEN ─────────────────────
+function SupabaseLoginScreen({ onAdmin }) {
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [taps, setTaps] = useState(0);
+
+  const doSubmit = async () => {
+    setErr("");
+    if (!email || !pass) { setErr("Posa email i contrasenya"); return; }
+    setLoading(true);
+    const error = await auth.signIn(email.trim().toLowerCase(), pass);
+    setLoading(false);
+    if (error) setErr(error);
+  };
+
+  const onLogoTap = () => {
+    const n = taps + 1; setTaps(n);
+    if (n >= 5) { setTaps(0); onAdmin(); }
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative" }}>
+      {/* Franja decorativa superior amb colors mundialeros */}
+      <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+
+      {/* Logo + títol */}
+      <div onClick={onLogoTap} style={{ textAlign: "center", marginBottom: 32, cursor: "pointer", userSelect: "none" }}>
+        <div style={{ fontSize: 64, marginBottom: 8 }}>🏆</div>
+        <div style={{ fontFamily: "var(--pff)", fontSize: 40, color: C.gold, letterSpacing: 4, lineHeight: 1 }}>BIRRAPORRA</div>
+        <div style={{ fontFamily: "var(--pff2)", fontSize: 14, color: C.muted, letterSpacing: 6, marginTop: 4, fontWeight: 600 }}>MUNDIAL 2026</div>
+        <div style={{ display: "inline-block", background: C.red, color: "#fff", fontFamily: "var(--pff2)", fontSize: 10, letterSpacing: 2, padding: "3px 12px", borderRadius: 3, marginTop: 10, fontWeight: 700 }}>🌍 FIFA WORLD CUP</div>
+      </div>
+
+      {/* Formulari */}
+      <div style={{ width: "100%", maxWidth: 340, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22, position: "relative", overflow: "hidden" }}>
+        <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+
+        <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 3, marginBottom: 14, fontWeight: 600 }}>⚽ ACCEDIR AL COMPTE</div>
+
+        <input
+          type="email"
+          placeholder="el-teu@email.com"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          autoComplete="email"
+          style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", color: C.txt, fontSize: 15, marginBottom: 10, fontFamily: "Inter, sans-serif", outline: "none" }}
+        />
+        <input
+          type="password"
+          placeholder="contrasenya"
+          value={pass}
+          onChange={e => setPass(e.target.value)}
+          onKeyDown={e => { if (e.key === "Enter") doSubmit(); }}
+          autoComplete="current-password"
+          style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", color: C.txt, fontSize: 15, marginBottom: 14, fontFamily: "Inter, sans-serif", outline: "none" }}
+        />
+
+        {err && <div style={{ background: "#3d0c0c", border: `1px solid ${C.red}`, borderRadius: 6, padding: "8px 10px", color: "#fcb4b4", fontSize: 13, marginBottom: 12 }}>{err}</div>}
+
+        <button
+          onClick={doSubmit}
+          disabled={loading}
+          style={{ width: "100%", background: loading ? C.muted : C.gold, color: "#062310", border: "none", borderRadius: 8, padding: "14px", fontFamily: "var(--pff)", fontSize: 22, letterSpacing: 3, cursor: "pointer", fontWeight: 400 }}
+        >
+          {loading ? "ENTRANT..." : "ENTRAR"}
+        </button>
+
+        <div style={{ marginTop: 16, fontSize: 11, color: C.muted, textAlign: "center", lineHeight: 1.6 }}>
+          No tens compte? Demana a l'admin que te'n creï un.
+        </div>
+      </div>
+
+      <div className="mundial-stripe" style={{ position: "absolute", bottom: 0, left: 0, right: 0 }} />
+    </div>
+  );
+}
+
+// ─────────────────────────── 5b. LOGIN SCREEN (antiga, no usada) ──────────
 function LoginScreen({ accounts, onLogin, onSignup, onAdmin }) {
   const [mode, setMode] = useState("login");
   const [name, setName] = useState(""); const [pass, setPass] = useState("");
@@ -1028,10 +1110,10 @@ export default function App() {
 
   useEffect(() => {
     const link = document.createElement("link"); link.rel = "stylesheet";
-    link.href = "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=Nunito:wght@400;600;700;800&display=swap";
+    link.href = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap";
     document.head.appendChild(link);
     const s = document.createElement("style");
-    s.textContent = `:root{--pff:'Barlow Condensed',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Nunito',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}button:active{transform:scale(0.97)}`;
+    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#c8102e 0%,#c8102e 33%,#f5c518 33%,#f5c518 66%,#164d24 66%,#164d24 100%);height:3px;width:100%}`;
     document.head.appendChild(s);
     const load = async () => {
       const [a, g, mb, m, b, cl, eu, ch, cf] = await Promise.all([
@@ -1050,6 +1132,85 @@ export default function App() {
 
   useEffect(() => { setLastSeen(prev => ({ ...prev, [tab]: Date.now() })); }, [tab, activeGroupId]);
   useEffect(() => { if (tab === "chat" && chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [tab, chats, activeGroupId]);
+
+  // ── SUPABASE AUTH: escoltar sessió i sincronitzar amb 'account' ───────────
+  // Quan l'usuari fa login, busquem/crearem el seu compte i el seu membre del grup únic
+  useEffect(() => {
+    if (!loaded) return;
+    let cancelled = false;
+
+    const syncFromUser = async (user) => {
+      if (cancelled) return;
+      if (!user) { setAccount(null); setActiveGroupId(null); return; }
+
+      // Refresquem les dades més recents abans de modificar
+      const [latestAccounts, latestGroups, latestMembers] = await Promise.all([
+        dbGet(KEYS.accounts), dbGet(KEYS.groups), dbGet(KEYS.members),
+      ]);
+      let accs = latestAccounts || [];
+      let grps = latestGroups || [];
+      let mbs = latestMembers || [];
+
+      // 1. Garantir que existeix el grup únic
+      if (!grps.find(g => g.id === MUNDIAL_GROUP_ID)) {
+        grps = [...grps, {
+          id: MUNDIAL_GROUP_ID,
+          name: "Mundial 2026 🏆",
+          passHash: hash("mundial2026"),
+          createdAt: Date.now(),
+          bote_EUR: 0,
+        }];
+        await dbSet(KEYS.groups, grps);
+      }
+
+      // 2. Buscar el compte d'aquest usuari per ID de Supabase (guardat al camp 'authId')
+      let acc = accs.find(a => a.authId === user.id);
+      if (!acc) {
+        // Crear el compte usant l'email/nom guardat als metadata de Supabase
+        const displayName = (user.user_metadata?.name || user.email.split("@")[0]).slice(0, 20);
+        const emoji = user.user_metadata?.emoji || "🍺";
+        acc = {
+          id: uid(),
+          authId: user.id,
+          name: displayName,
+          email: user.email,
+          emoji,
+          createdAt: Date.now(),
+        };
+        accs = [...accs, acc];
+        await dbSet(KEYS.accounts, accs);
+      }
+
+      // 3. Garantir que aquest compte és membre del grup únic
+      const existingMember = mbs.find(m => m.accountId === acc.id && m.groupId === MUNDIAL_GROUP_ID);
+      if (!existingMember) {
+        const newMember = {
+          id: uid(),
+          accountId: acc.id,
+          groupId: MUNDIAL_GROUP_ID,
+          birras: CFG.START_BIRRAS,
+          racha: 0,
+          lastRobbery: 0,
+          jokerWeek: null,
+          seenWelcome: false,
+          joinedAt: Date.now(),
+        };
+        mbs = [...mbs, newMember];
+        await dbSet(KEYS.members, mbs);
+      }
+
+      if (cancelled) return;
+      setAccounts(accs); setGroups(grps); setMembers(mbs);
+      setAccount(acc);
+      setActiveGroupId(MUNDIAL_GROUP_ID);
+    };
+
+    // Sessió inicial
+    auth.getUser().then(syncFromUser);
+    // Subscripció a canvis de login/logout
+    const unsubscribe = auth.onAuthChange(syncFromUser);
+    return () => { cancelled = true; unsubscribe(); };
+  }, [loaded]);
 
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); };
 
@@ -1529,22 +1690,25 @@ export default function App() {
 
   // ── RENDER ───────────────────────────────────────────────────────────────
   if (!loaded) return (
-    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 }}>
-      <div style={{ fontSize: 60, animation: "foam 1.5s ease-in-out infinite" }}>🍺</div>
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, position: "relative" }}>
+      <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+      <div style={{ fontSize: 60, animation: "foam 1.5s ease-in-out infinite" }}>🏆</div>
       <div style={{ width: 30, height: 30, border: `3px solid ${C.border}`, borderTop: `3px solid ${C.gold}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-      <p style={{ color: C.muted, fontFamily: "var(--pff)", letterSpacing: 2 }}>SERVINT LES BIRRES...</p>
+      <p style={{ color: C.muted, fontFamily: "var(--pff2)", letterSpacing: 3, fontSize: 12, fontWeight: 600 }}>CARREGANT EL MUNDIAL...</p>
+      <div className="mundial-stripe" style={{ position: "absolute", bottom: 0, left: 0, right: 0 }} />
     </div>
   );
 
   if (!account) return (<>
-    <LoginScreen accounts={accounts} onLogin={doLogin} onSignup={doSignup} onAdmin={() => setShowAdminLogin(true)} />
+    <SupabaseLoginScreen onAdmin={() => setShowAdminLogin(true)} />
     {showAdminLogin && <AdminPassModal onSubmit={tryAdmin} onClose={() => setShowAdminLogin(false)} />}
   </>);
 
-  if (!activeGroupId) return (<>
-    <GroupScreen account={account} groups={groups} members={members} onJoin={doJoin} onCreate={doCreate} onLogout={() => { setAccount(null); setActiveGroupId(null); }} />
-    {showAdminLogin && <AdminPassModal onSubmit={tryAdmin} onClose={() => setShowAdminLogin(false)} />}
-  </>);
+  // Auto-join al grup únic "Mundial 2026" — no hi ha selector de grups
+  if (!activeGroupId) {
+    setActiveGroupId(MUNDIAL_GROUP_ID);
+    return null;
+  }
 
   if (showRules && !member?.seenWelcome) return <RulesScreen firstTime onClose={markSeenWelcome} />;
   if (!member) { setActiveGroupId(null); return null; }
@@ -1560,11 +1724,12 @@ export default function App() {
     <div style={{ minHeight: "100vh", background: C.bg, color: C.txt, maxWidth: 480, margin: "0 auto", paddingBottom: 80 }}>
       {/* HEADER */}
       <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
+        <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 28 }}>🍺</span>
+          <span style={{ fontSize: 28 }}>🏆</span>
           <div>
-            <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 18, color: C.gold, lineHeight: 1, letterSpacing: 1 }}>BIRRAPORRA FC</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{currentGroup?.name} · {account.emoji || "🍺"} {account.name}</div>
+            <div style={{ fontFamily: "var(--pff)", fontSize: 22, color: C.gold, lineHeight: 1, letterSpacing: 2 }}>BIRRAPORRA</div>
+            <div style={{ fontFamily: "var(--pff2)", fontSize: 9, color: C.muted, marginTop: 2, letterSpacing: 3, fontWeight: 600 }}>MUNDIAL 2026 · {account.emoji || "🍺"} {account.name}</div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -1973,7 +2138,7 @@ export default function App() {
             {[
               { icon: "📖", label: "Normes del joc", action: () => setShowRules(true) },
               { icon: "🔄", label: "Canviar de grup", action: () => setActiveGroupId(null), color: C.blue },
-              { icon: "🚪", label: "Tancar sessió", action: () => { setAccount(null); setActiveGroupId(null); setTab("matches"); }, color: C.muted },
+              { icon: "🚪", label: "Tancar sessió", action: async () => { await auth.signOut(); setAccount(null); setActiveGroupId(null); setTab("matches"); }, color: C.muted },
             ].map((opt, i) => (
               <button key={i} onClick={opt.action} style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", color: opt.color || C.txt, fontSize: 15, fontWeight: 600, textAlign: "left" }}>
                 <span style={{ fontSize: 22 }}>{opt.icon}</span><span>{opt.label}</span>
