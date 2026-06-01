@@ -44,9 +44,6 @@ const KEYS = {
 async function dbGet(k) { try { return await db.get(k); } catch { return null; } }
 async function dbSet(k, v) { try { await db.set(k, v); } catch (e) { console.error("dbSet error", e); } }
 
-// ID fix de l'únic grup global del Mundial. Tots els usuaris pertanyen aquí.
-const MUNDIAL_GROUP_ID = "mundial_2026";
-
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const hash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i); return String(h >>> 0); };
 const fmtDate = s => !s ? "" : new Date(s).toLocaleDateString("ca-ES", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -143,17 +140,35 @@ function EmojiPicker({ value, onChange, compact }) {
 
 // ─────────────────────────── 5. SUPABASE LOGIN SCREEN ─────────────────────
 function SupabaseLoginScreen({ onAdmin }) {
+  const [mode, setMode] = useState("login"); // "login" | "signup"
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [name, setName] = useState("");
+  const [emoji, setEmoji] = useState("🍺");
   const [err, setErr] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
   const [taps, setTaps] = useState(0);
 
   const doSubmit = async () => {
-    setErr("");
+    setErr(""); setInfo("");
     if (!email || !pass) { setErr("Posa email i contrasenya"); return; }
+    if (mode === "signup" && !name.trim()) { setErr("Posa el teu nom"); return; }
     setLoading(true);
-    const error = await auth.signIn(email.trim().toLowerCase(), pass);
+    let error;
+    if (mode === "login") {
+      error = await auth.signIn(email.trim().toLowerCase(), pass);
+    } else {
+      error = await auth.signUp(email.trim().toLowerCase(), pass, name.trim(), emoji);
+      if (!error) {
+        // Auto-login després del signup (perquè a Supabase tens "Confirm email" desactivat)
+        const loginErr = await auth.signIn(email.trim().toLowerCase(), pass);
+        if (loginErr) {
+          setInfo("Compte creat! Comprova el correu per confirmar.");
+          setMode("login"); setPass(""); setName("");
+        }
+      }
+    }
     setLoading(false);
     if (error) setErr(error);
   };
@@ -163,57 +178,215 @@ function SupabaseLoginScreen({ onAdmin }) {
     if (n >= 5) { setTaps(0); onAdmin(); }
   };
 
+  const EMOJI_OPTIONS = ["🍺","⚽","🔥","🏆","😈","🎯","👑","💪","🦁","🐂","🦅","🐺","⚡","💀","🤘","🍀"];
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24, position: "relative" }}>
-      {/* Franja decorativa superior amb colors mundialeros */}
       <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
 
-      {/* Logo + títol */}
-      <div onClick={onLogoTap} style={{ textAlign: "center", marginBottom: 32, cursor: "pointer", userSelect: "none" }}>
-        <div style={{ fontSize: 64, marginBottom: 8 }}>🏆</div>
-        <div style={{ fontFamily: "var(--pff)", fontSize: 40, color: C.gold, letterSpacing: 4, lineHeight: 1 }}>BIRRAPORRA</div>
-        <div style={{ fontFamily: "var(--pff2)", fontSize: 14, color: C.muted, letterSpacing: 6, marginTop: 4, fontWeight: 600 }}>MUNDIAL 2026</div>
+      <div onClick={onLogoTap} style={{ textAlign: "center", marginBottom: 28, cursor: "pointer", userSelect: "none" }}>
+        <div style={{ fontSize: 60, marginBottom: 8 }}>🏆</div>
+        <div style={{ fontFamily: "var(--pff)", fontSize: 38, color: C.gold, letterSpacing: 4, lineHeight: 1 }}>BIRRAPORRA</div>
+        <div style={{ fontFamily: "var(--pff2)", fontSize: 13, color: C.muted, letterSpacing: 6, marginTop: 4, fontWeight: 600 }}>MUNDIAL 2026</div>
         <div style={{ display: "inline-block", background: C.red, color: "#fff", fontFamily: "var(--pff2)", fontSize: 10, letterSpacing: 2, padding: "3px 12px", borderRadius: 3, marginTop: 10, fontWeight: 700 }}>🌍 FIFA WORLD CUP</div>
       </div>
 
-      {/* Formulari */}
       <div style={{ width: "100%", maxWidth: 340, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22, position: "relative", overflow: "hidden" }}>
         <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
 
-        <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 3, marginBottom: 14, fontWeight: 600 }}>⚽ ACCEDIR AL COMPTE</div>
+        {/* Pestanyes login / signup */}
+        <div style={{ display: "flex", marginBottom: 18, background: C.bg, borderRadius: 8, padding: 3, gap: 2 }}>
+          <button
+            onClick={() => { setMode("login"); setErr(""); setInfo(""); }}
+            style={{ flex: 1, padding: "8px", background: mode === "login" ? C.gold : "transparent", color: mode === "login" ? "#062310" : C.muted, border: "none", borderRadius: 6, fontFamily: "var(--pff2)", fontSize: 11, letterSpacing: 2, fontWeight: 700, cursor: "pointer" }}
+          >ENTRAR</button>
+          <button
+            onClick={() => { setMode("signup"); setErr(""); setInfo(""); }}
+            style={{ flex: 1, padding: "8px", background: mode === "signup" ? C.gold : "transparent", color: mode === "signup" ? "#062310" : C.muted, border: "none", borderRadius: 6, fontFamily: "var(--pff2)", fontSize: 11, letterSpacing: 2, fontWeight: 700, cursor: "pointer" }}
+          >REGISTRAR-SE</button>
+        </div>
+
+        {mode === "signup" && (
+          <>
+            <input
+              type="text" placeholder="El teu nom o mote" value={name}
+              onChange={e => setName(e.target.value)} maxLength={20}
+              style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", color: C.txt, fontSize: 15, marginBottom: 10, fontFamily: "Inter, sans-serif", outline: "none" }}
+            />
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 10, color: C.muted, fontFamily: "var(--pff2)", letterSpacing: 1.5, marginBottom: 6, fontWeight: 600 }}>EMOJI</div>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 4 }}>
+                {EMOJI_OPTIONS.map(e => (
+                  <button key={e} onClick={() => setEmoji(e)}
+                    style={{ fontSize: 18, padding: 6, background: emoji === e ? C.gold : C.bg, border: `1px solid ${emoji === e ? C.gold : C.border}`, borderRadius: 6, cursor: "pointer" }}>{e}</button>
+                ))}
+              </div>
+            </div>
+          </>
+        )}
 
         <input
-          type="email"
-          placeholder="el-teu@email.com"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          autoComplete="email"
+          type="email" placeholder="el-teu@email.com" value={email}
+          onChange={e => setEmail(e.target.value)} autoComplete="email"
           style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", color: C.txt, fontSize: 15, marginBottom: 10, fontFamily: "Inter, sans-serif", outline: "none" }}
         />
         <input
-          type="password"
-          placeholder="contrasenya"
-          value={pass}
+          type="password" placeholder={mode === "signup" ? "contrasenya (6+ caràcters)" : "contrasenya"} value={pass}
           onChange={e => setPass(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter") doSubmit(); }}
-          autoComplete="current-password"
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
           style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", color: C.txt, fontSize: 15, marginBottom: 14, fontFamily: "Inter, sans-serif", outline: "none" }}
         />
 
         {err && <div style={{ background: "#3d0c0c", border: `1px solid ${C.red}`, borderRadius: 6, padding: "8px 10px", color: "#fcb4b4", fontSize: 13, marginBottom: 12 }}>{err}</div>}
+        {info && <div style={{ background: "#0d2200", border: `1px solid ${C.green}`, borderRadius: 6, padding: "8px 10px", color: "#a8e6a0", fontSize: 13, marginBottom: 12 }}>{info}</div>}
 
-        <button
-          onClick={doSubmit}
-          disabled={loading}
-          style={{ width: "100%", background: loading ? C.muted : C.gold, color: "#062310", border: "none", borderRadius: 8, padding: "14px", fontFamily: "var(--pff)", fontSize: 22, letterSpacing: 3, cursor: "pointer", fontWeight: 400 }}
-        >
-          {loading ? "ENTRANT..." : "ENTRAR"}
+        <button onClick={doSubmit} disabled={loading}
+          style={{ width: "100%", background: loading ? C.muted : C.gold, color: "#062310", border: "none", borderRadius: 8, padding: "14px", fontFamily: "var(--pff)", fontSize: 22, letterSpacing: 3, cursor: loading ? "not-allowed" : "pointer" }}>
+          {loading ? (mode === "login" ? "ENTRANT..." : "CREANT...") : (mode === "login" ? "ENTRAR" : "CREAR COMPTE")}
         </button>
+      </div>
 
-        <div style={{ marginTop: 16, fontSize: 11, color: C.muted, textAlign: "center", lineHeight: 1.6 }}>
-          No tens compte? Demana a l'admin que te'n creï un.
+      <div className="mundial-stripe" style={{ position: "absolute", bottom: 0, left: 0, right: 0 }} />
+    </div>
+  );
+}
+
+// ─────────────────────────── 5c. GROUP PICKER ─────────────────────────────
+function GroupPicker({ account, groups, members, adminMode, onJoinGroup, onCreateGroup, onSelectGroup, onLogout, onAdminLogin }) {
+  const [mode, setMode] = useState("list"); // "list" | "join" | "create"
+  const [code, setCode] = useState("");
+  const [groupName, setGroupName] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [taps, setTaps] = useState(0);
+
+  // Grups dels quals ja és membre
+  const myGroups = groups.filter(g => members.some(m => m.accountId === account.id && m.groupId === g.id));
+
+  const onLogoTap = () => {
+    const n = taps + 1; setTaps(n);
+    if (n >= 5) { setTaps(0); onAdminLogin(); }
+  };
+
+  const doJoin = async () => {
+    setErr(""); setLoading(true);
+    await onJoinGroup({ code }, setErr);
+    setLoading(false);
+  };
+  const doCreate = async () => {
+    setErr(""); setLoading(true);
+    await onCreateGroup({ name: groupName }, setErr);
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", flexDirection: "column", padding: "20px 16px 40px", position: "relative" }}>
+      <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+
+      {/* Header */}
+      <div onClick={onLogoTap} style={{ textAlign: "center", marginTop: 30, marginBottom: 28, cursor: "pointer", userSelect: "none" }}>
+        <div style={{ fontSize: 48, marginBottom: 6 }}>👥</div>
+        <div style={{ fontFamily: "var(--pff)", fontSize: 30, color: C.gold, letterSpacing: 3, lineHeight: 1 }}>ELS TEUS GRUPS</div>
+        <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 3, marginTop: 6, fontWeight: 600 }}>
+          {account.emoji} {account.name.toUpperCase()}{adminMode && " · 🛠 ADMIN"}
         </div>
       </div>
+
+      {/* Llista de grups (si en té) */}
+      {mode === "list" && (
+        <div style={{ width: "100%", maxWidth: 360, margin: "0 auto" }}>
+          {myGroups.length > 0 && (
+            <>
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2.5, marginBottom: 10, fontWeight: 600 }}>SELECCIONA UN GRUP</div>
+              {myGroups.map(g => (
+                <button key={g.id} onClick={() => onSelectGroup(g.id)}
+                  style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", textAlign: "left", position: "relative", overflow: "hidden" }}>
+                  <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+                  <div>
+                    <div style={{ fontFamily: "var(--pff)", fontSize: 20, color: C.txt, letterSpacing: 1, lineHeight: 1.1 }}>{g.name}</div>
+                    {g.joinCode && adminMode && <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.amber, letterSpacing: 2, marginTop: 4, fontWeight: 600 }}>CODI: {g.joinCode}</div>}
+                  </div>
+                  <span style={{ color: C.gold, fontSize: 22 }}>→</span>
+                </button>
+              ))}
+              <div style={{ height: 16 }} />
+            </>
+          )}
+
+          {myGroups.length === 0 && (
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 20, marginBottom: 14, textAlign: "center" }}>
+              <div style={{ fontSize: 40, marginBottom: 8 }}>🏟️</div>
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 2, fontWeight: 600 }}>ENCARA NO ETS A CAP GRUP</div>
+              <div style={{ fontSize: 12, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>Utilitza un codi de grup que t'hagi donat l'admin</div>
+            </div>
+          )}
+
+          <button onClick={() => { setMode("join"); setErr(""); }}
+            style={{ width: "100%", background: C.gold, color: "#062310", border: "none", borderRadius: 10, padding: "14px", fontFamily: "var(--pff)", fontSize: 20, letterSpacing: 2, cursor: "pointer", marginBottom: 8 }}>
+            🔑 UNIR-ME AMB CODI
+          </button>
+
+          {adminMode && (
+            <button onClick={() => { setMode("create"); setErr(""); }}
+              style={{ width: "100%", background: C.red, color: "#fff", border: "none", borderRadius: 10, padding: "14px", fontFamily: "var(--pff)", fontSize: 18, letterSpacing: 2, cursor: "pointer", marginBottom: 8 }}>
+              ➕ CREAR GRUP NOU (ADMIN)
+            </button>
+          )}
+
+          <button onClick={onLogout}
+            style={{ width: "100%", background: "transparent", color: C.muted, border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px", fontFamily: "var(--pff2)", fontSize: 13, letterSpacing: 2, cursor: "pointer", marginTop: 14, fontWeight: 600 }}>
+            🚪 TANCAR SESSIÓ
+          </button>
+        </div>
+      )}
+
+      {/* Form: unir-se amb codi */}
+      {mode === "join" && (
+        <div style={{ width: "100%", maxWidth: 360, margin: "0 auto", background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22, position: "relative", overflow: "hidden" }}>
+          <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+          <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 3, marginBottom: 14, fontWeight: 600 }}>🔑 CODI DEL GRUP</div>
+          <input
+            type="text" placeholder="ABC123" value={code}
+            onChange={e => setCode(e.target.value.toUpperCase())}
+            maxLength={6} autoCapitalize="characters"
+            style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "14px", color: C.gold, fontSize: 26, fontFamily: "var(--pff)", letterSpacing: 6, textAlign: "center", marginBottom: 12, outline: "none" }}
+          />
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 14, textAlign: "center", lineHeight: 1.5 }}>L'admin t'ha de donar el codi del grup</div>
+          {err && <div style={{ background: "#3d0c0c", border: `1px solid ${C.red}`, borderRadius: 6, padding: "8px 10px", color: "#fcb4b4", fontSize: 13, marginBottom: 12 }}>{err}</div>}
+          <button onClick={doJoin} disabled={loading || !code}
+            style={{ width: "100%", background: (loading || !code) ? C.muted : C.gold, color: "#062310", border: "none", borderRadius: 8, padding: "14px", fontFamily: "var(--pff)", fontSize: 20, letterSpacing: 2, cursor: (loading || !code) ? "not-allowed" : "pointer", marginBottom: 8 }}>
+            {loading ? "UNINT..." : "UNIR-ME"}
+          </button>
+          <button onClick={() => { setMode("list"); setErr(""); setCode(""); }}
+            style={{ width: "100%", background: "transparent", color: C.muted, border: "none", padding: "10px", fontFamily: "var(--pff2)", fontSize: 12, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>
+            ← TORNAR
+          </button>
+        </div>
+      )}
+
+      {/* Form: crear grup (només admin) */}
+      {mode === "create" && (
+        <div style={{ width: "100%", maxWidth: 360, margin: "0 auto", background: C.card, border: `1px solid ${C.red}`, borderRadius: 14, padding: 22, position: "relative", overflow: "hidden" }}>
+          <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+          <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.red, letterSpacing: 3, marginBottom: 14, fontWeight: 600 }}>➕ CREAR GRUP NOU</div>
+          <input
+            type="text" placeholder="Ex: Mundial colla del bar" value={groupName}
+            onChange={e => setGroupName(e.target.value)} maxLength={40}
+            style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", color: C.txt, fontSize: 15, marginBottom: 12, fontFamily: "Inter, sans-serif", outline: "none" }}
+          />
+          <div style={{ fontSize: 11, color: C.muted, marginBottom: 14, lineHeight: 1.5 }}>Es generarà un codi de 6 caràcters perquè els amics s'uneixin.</div>
+          {err && <div style={{ background: "#3d0c0c", border: `1px solid ${C.red}`, borderRadius: 6, padding: "8px 10px", color: "#fcb4b4", fontSize: 13, marginBottom: 12 }}>{err}</div>}
+          <button onClick={doCreate} disabled={loading || !groupName.trim()}
+            style={{ width: "100%", background: (loading || !groupName.trim()) ? C.muted : C.red, color: "#fff", border: "none", borderRadius: 8, padding: "14px", fontFamily: "var(--pff)", fontSize: 20, letterSpacing: 2, cursor: (loading || !groupName.trim()) ? "not-allowed" : "pointer", marginBottom: 8 }}>
+            {loading ? "CREANT..." : "CREAR GRUP"}
+          </button>
+          <button onClick={() => { setMode("list"); setErr(""); setGroupName(""); }}
+            style={{ width: "100%", background: "transparent", color: C.muted, border: "none", padding: "10px", fontFamily: "var(--pff2)", fontSize: 12, letterSpacing: 2, cursor: "pointer", fontWeight: 600 }}>
+            ← TORNAR
+          </button>
+        </div>
+      )}
 
       <div className="mundial-stripe" style={{ position: "absolute", bottom: 0, left: 0, right: 0 }} />
     </div>
@@ -1116,7 +1289,7 @@ export default function App() {
   useEffect(() => { if (tab === "chat" && chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [tab, chats, activeGroupId]);
 
   // ── SUPABASE AUTH: escoltar sessió i sincronitzar amb 'account' ───────────
-  // Quan l'usuari fa login, busquem/crearem el seu compte i el seu membre del grup únic
+  // El compte es crea automàticament al primer login. Els grups es trien després.
   useEffect(() => {
     if (!loaded) return;
     let cancelled = false;
@@ -1125,30 +1298,13 @@ export default function App() {
       if (cancelled) return;
       if (!user) { setAccount(null); setActiveGroupId(null); return; }
 
-      // Refresquem les dades més recents abans de modificar
-      const [latestAccounts, latestGroups, latestMembers] = await Promise.all([
-        dbGet(KEYS.accounts), dbGet(KEYS.groups), dbGet(KEYS.members),
-      ]);
+      // Refresquem comptes per saber si ja existeix
+      const latestAccounts = await dbGet(KEYS.accounts);
       let accs = latestAccounts || [];
-      let grps = latestGroups || [];
-      let mbs = latestMembers || [];
 
-      // 1. Garantir que existeix el grup únic
-      if (!grps.find(g => g.id === MUNDIAL_GROUP_ID)) {
-        grps = [...grps, {
-          id: MUNDIAL_GROUP_ID,
-          name: "Mundial 2026 🏆",
-          passHash: hash("mundial2026"),
-          createdAt: Date.now(),
-          bote_EUR: 0,
-        }];
-        await dbSet(KEYS.groups, grps);
-      }
-
-      // 2. Buscar el compte d'aquest usuari per ID de Supabase (guardat al camp 'authId')
+      // Busquem el compte per authId (ID de Supabase)
       let acc = accs.find(a => a.authId === user.id);
       if (!acc) {
-        // Crear el compte usant l'email/nom guardat als metadata de Supabase
         const displayName = (user.user_metadata?.name || user.email.split("@")[0]).slice(0, 20);
         const emoji = user.user_metadata?.emoji || "🍺";
         acc = {
@@ -1163,36 +1319,89 @@ export default function App() {
         await dbSet(KEYS.accounts, accs);
       }
 
-      // 3. Garantir que aquest compte és membre del grup únic
-      const existingMember = mbs.find(m => m.accountId === acc.id && m.groupId === MUNDIAL_GROUP_ID);
-      if (!existingMember) {
-        const newMember = {
-          id: uid(),
-          accountId: acc.id,
-          groupId: MUNDIAL_GROUP_ID,
-          birras: CFG.START_BIRRAS,
-          racha: 0,
-          lastRobbery: 0,
-          jokerWeek: null,
-          seenWelcome: false,
-          joinedAt: Date.now(),
-        };
-        mbs = [...mbs, newMember];
-        await dbSet(KEYS.members, mbs);
-      }
-
       if (cancelled) return;
-      setAccounts(accs); setGroups(grps); setMembers(mbs);
+      setAccounts(accs);
       setAccount(acc);
-      setActiveGroupId(MUNDIAL_GROUP_ID);
+      // NO setActiveGroupId aquí: que l'usuari triï grup a continuació
     };
 
-    // Sessió inicial
     auth.getUser().then(syncFromUser);
-    // Subscripció a canvis de login/logout
     const unsubscribe = auth.onAuthChange(syncFromUser);
     return () => { cancelled = true; unsubscribe(); };
   }, [loaded]);
+
+  // ── GRUPS V4: unir-se amb codi o crear (només admin) ──────────────────────
+  const doJoinGroupV4 = async ({ code }, setErr) => {
+    if (!code || !code.trim()) { setErr("Codi buit"); return; }
+    const latestGroups = await dbGet(KEYS.groups);
+    const grps = latestGroups || [];
+    const trimmedCode = code.trim().toUpperCase();
+    const found = grps.find(g => (g.joinCode || "").toUpperCase() === trimmedCode);
+    if (!found) { setErr("Codi de grup incorrecte"); return; }
+
+    // Crear membre si no existeix
+    const latestMembers = await dbGet(KEYS.members);
+    let mbs = latestMembers || [];
+    const existing = mbs.find(m => m.accountId === account.id && m.groupId === found.id);
+    if (!existing) {
+      const newMember = {
+        id: uid(),
+        accountId: account.id,
+        groupId: found.id,
+        birras: CFG.START_BIRRAS,
+        racha: 0,
+        seenWelcome: false,
+        joinedAt: Date.now(),
+      };
+      mbs = [...mbs, newMember];
+      await dbSet(KEYS.members, mbs);
+      setMembers(mbs);
+    }
+    setGroups(grps);
+    setActiveGroupId(found.id);
+  };
+
+  const doCreateGroupV4 = async ({ name }, setErr) => {
+    if (!adminMode) { setErr("Només l'admin pot crear grups"); return; }
+    if (!name || !name.trim()) { setErr("Posa un nom"); return; }
+    const latestGroups = await dbGet(KEYS.groups);
+    let grps = latestGroups || [];
+    // Generar codi únic de 6 caràcters
+    const genCode = () => Array.from({ length: 6 }, () =>
+      "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
+    let joinCode;
+    do { joinCode = genCode(); } while (grps.find(g => g.joinCode === joinCode));
+
+    const newGroup = {
+      id: uid(),
+      name: name.trim(),
+      joinCode,
+      createdBy: account.id,
+      createdAt: Date.now(),
+      bote_EUR: 0,
+    };
+    grps = [...grps, newGroup];
+    await dbSet(KEYS.groups, grps);
+
+    // L'admin també es membre automàticament
+    const latestMembers = await dbGet(KEYS.members);
+    let mbs = latestMembers || [];
+    const newMember = {
+      id: uid(),
+      accountId: account.id,
+      groupId: newGroup.id,
+      birras: CFG.START_BIRRAS,
+      racha: 0,
+      seenWelcome: false,
+      joinedAt: Date.now(),
+    };
+    mbs = [...mbs, newMember];
+    await dbSet(KEYS.members, mbs);
+
+    setGroups(grps);
+    setMembers(mbs);
+    setActiveGroupId(newGroup.id);
+  };
 
   const showToast = (msg, type = "info") => { setToast({ msg, type }); setTimeout(() => setToast(null), 3500); };
 
@@ -1651,14 +1860,30 @@ export default function App() {
     {showAdminLogin && <AdminPassModal onSubmit={tryAdmin} onClose={() => setShowAdminLogin(false)} />}
   </>);
 
-  // Auto-join al grup únic "Mundial 2026" — no hi ha selector de grups
-  if (!activeGroupId) {
-    setActiveGroupId(MUNDIAL_GROUP_ID);
-    return null;
-  }
+  // L'usuari ha de triar un grup (o crear-ne un si és admin)
+  if (!activeGroupId) return (<>
+    <GroupPicker
+      account={account}
+      groups={groups}
+      members={members}
+      adminMode={adminMode}
+      onJoinGroup={doJoinGroupV4}
+      onCreateGroup={doCreateGroupV4}
+      onSelectGroup={(gid) => setActiveGroupId(gid)}
+      onLogout={async () => { await auth.signOut(); }}
+      onAdminLogin={() => setShowAdminLogin(true)}
+    />
+    {showAdminLogin && <AdminPassModal onSubmit={tryAdmin} onClose={() => setShowAdminLogin(false)} />}
+  </>);
+
+  // Si està al grup però encara no s'ha creat el membre (timing race), esperem
+  if (!member) return (
+    <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 30, height: 30, border: `3px solid ${C.border}`, borderTop: `3px solid ${C.gold}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+    </div>
+  );
 
   if (showRules && !member?.seenWelcome) return <RulesScreen firstTime onClose={markSeenWelcome} />;
-  if (!member) { setActiveGroupId(null); return null; }
 
   const headerStat = (label, value, color = C.gold) => (
     <div style={{ flex: 1, textAlign: "center" }}>
@@ -1965,6 +2190,7 @@ export default function App() {
             <div style={sty.sectionH}>OPCIONS</div>
             {[
               { icon: "📖", label: "Normes del joc", action: () => setShowRules(true) },
+              { icon: "🔄", label: "Canviar de grup", action: () => setActiveGroupId(null), color: C.blue },
               { icon: "🚪", label: "Tancar sessió", action: async () => { await auth.signOut(); setAccount(null); setActiveGroupId(null); setTab("matches"); }, color: C.muted },
             ].map((opt, i) => (
               <button key={i} onClick={opt.action} style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, padding: "14px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12, cursor: "pointer", color: opt.color || C.txt, fontSize: 15, fontWeight: 600, textAlign: "left" }}>
