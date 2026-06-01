@@ -1,7 +1,7 @@
 {
-  "name": "birraporra-fc",
+  "name": "birraporra-mundial",
   "version": "1.5.0",
-  "description": "La porra dels teus colegues",
+  "description": "La porra del Mundial 2026 dels teus colegues",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
