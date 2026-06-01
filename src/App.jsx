@@ -1804,7 +1804,11 @@ export default function App() {
   const profetaRei = [...memberStats].sort((a, b) => b.exactos - a.exactos)[0];
   const jackpotKing = memberStats.map(u => {
     let count = 0;
-    for (const [_, info] of clasicoHistory) if (info.winners.includes(u.id)) count++;
+    if (espanyaHistory) {
+      for (const [_, info] of espanyaHistory) {
+        if (info.winners && info.winners.some(w => w.memberId === u.id)) count++;
+      }
+    }
     return { ...u, jackpotsWon: count };
   }).sort((a, b) => b.jackpotsWon - a.jackpotsWon)[0];
 
@@ -1862,6 +1866,31 @@ export default function App() {
     {showAdminLogin && <AdminPassModal onSubmit={tryAdmin} onClose={() => setShowAdminLogin(false)} />}
   </>);
 
+  // Garantir que el membre existeix abans d'entrar al grup
+  const enterGroup = async (gid) => {
+    const latestMembers = await dbGet(KEYS.members);
+    let mbs = latestMembers || members;
+    const existing = mbs.find(m => m.accountId === account.id && m.groupId === gid);
+    if (!existing) {
+      const newMember = {
+        id: uid(),
+        accountId: account.id,
+        groupId: gid,
+        birras: CFG.START_BIRRAS,
+        racha: 0,
+        seenWelcome: false,
+        joinedAt: Date.now(),
+      };
+      mbs = [...mbs, newMember];
+      await dbSet(KEYS.members, mbs);
+      setMembers(mbs);
+    } else if (latestMembers) {
+      // Sincronitzem si hi havia un membre que no estava en estat local
+      setMembers(mbs);
+    }
+    setActiveGroupId(gid);
+  };
+
   // L'usuari ha de triar un grup (o crear-ne un si és admin)
   if (!activeGroupId) return (<>
     <GroupPicker
@@ -1871,39 +1900,21 @@ export default function App() {
       adminMode={adminMode}
       onJoinGroup={doJoinGroupV4}
       onCreateGroup={doCreateGroupV4}
-      onSelectGroup={(gid) => setActiveGroupId(gid)}
+      onSelectGroup={enterGroup}
       onLogout={async () => { await auth.signOut(); }}
       onAdminLogin={() => setShowAdminLogin(true)}
     />
     {showAdminLogin && <AdminPassModal onSubmit={tryAdmin} onClose={() => setShowAdminLogin(false)} />}
   </>);
 
-  // Si està al grup però no s'ha creat el membre (timing race o primer accés),
-  // el creem automàticament ara
-  if (!member && account && activeGroupId) {
-    const existingInState = members.find(m => m.accountId === account.id && m.groupId === activeGroupId);
-    if (!existingInState && loaded) {
-      // Creem el membre i l'afegim — ho fem via useEffect per no mutar durant el render
-      const newMember = {
-        id: uid(),
-        accountId: account.id,
-        groupId: activeGroupId,
-        birras: CFG.START_BIRRAS,
-        racha: 0,
-        seenWelcome: false,
-        joinedAt: Date.now(),
-      };
-      const updatedMembers = [...members, newMember];
-      // Executem fora del render
-      Promise.resolve().then(async () => {
-        await dbSet(KEYS.members, updatedMembers);
-        setMembers(updatedMembers);
-      });
-    }
+  // Si encara no s'ha creat el membre (race condition rar), tornar al picker en lloc de quedar negre
+  if (!member) {
+    // En lloc de spinner infinit, tornem a la pantalla de tria de grup
+    setTimeout(() => setActiveGroupId(null), 0);
     return (
       <div style={{ minHeight: "100vh", background: C.bg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 12 }}>
         <div style={{ width: 30, height: 30, border: `3px solid ${C.border}`, borderTop: `3px solid ${C.gold}`, borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
-        <p style={{ color: C.muted, fontFamily: "var(--pff2)", fontSize: 11, letterSpacing: 2, fontWeight: 600 }}>PREPARANT EL COMPTE...</p>
+        <p style={{ color: C.muted, fontFamily: "var(--pff2)", fontSize: 11, letterSpacing: 2, fontWeight: 600 }}>UN MOMENT...</p>
       </div>
     );
   }
