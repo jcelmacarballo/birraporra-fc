@@ -9,9 +9,9 @@ import { supabase, db, auth } from "./supabase.js";
 // ─────────────────────────── 1. CONFIG ────────────────────────────────────
 const CFG = {
   ADMIN_PASS: "gol2024",
-  ENTRY_EUR: 2.50, START_BIRRAS: 50, BIRRA_EUR: 0.05, BEER_EUR: 2.50,
+  ENTRY_EUR: 10.00, START_BIRRAS: 100, BIRRA_EUR: 0.10, BEER_EUR: 2.50,
   PRIZES: [0.40, 0.30, 0.20, 0.10],
-  EXACT_BONUS: 2,
+  EXACT_BONUS: 1.5,
   // Cara o Creu
   COIN_ENTRY: 5, COIN_MAX_DOUBLES: 3,
   // Jackpot Espanya: cost mínim d'apostar al jackpot per partit d'Espanya (en birres)
@@ -20,9 +20,9 @@ const CFG = {
 };
 
 const C = {
-  bg: "#041a0a", card: "#062310", card2: "#0d3318", border: "#164d24",
-  gold: "#f5c518", amber: "#d4a017", muted: "#4db86a", txt: "#f0e8d0",
-  red: "#c8102e", green: "#1d9e75", blue: "#5299d6", purple: "#a855f7",
+  bg: "#0a0a0a", card: "#141414", card2: "#1e1e1e", border: "#2a2a2a",
+  gold: "#f5c518", amber: "#e4a010", muted: "#888888", txt: "#ffffff",
+  red: "#e4151b", green: "#006847", blue: "#002868", purple: "#7c3aed",
   rose: "#f43f5e", cyan: "#22d3ee",
 };
 
@@ -1129,8 +1129,7 @@ function AdminPanel({ data, handlers, onClose }) {
                 </div>;
               })}
             </div>
-            <button onClick={() => { if (confirm("Tancar mes?")) handlers.closeMonth(selGroupId); }} style={{ ...sty.btnPrimary, width: "100%", background: C.green, color: "#fff", marginBottom: 8 }}>🏆 TANCAR MES</button>
-            <button onClick={() => { if (confirm("Doblar el pot?")) handlers.doubleMonth(selGroupId); }} style={{ ...sty.btnPrimary, width: "100%", background: C.blue, color: "#fff", marginBottom: 20 }}>🎲 DOBLAR</button>
+            {/* Botons tancar mes i doblar eliminats: es farà manualment al final del Mundial */}
 
             {/* Zona perillosa: esborrar grup */}
             <div style={{ borderTop: `1px solid ${C.red}`, paddingTop: 16, marginTop: 8 }}>
@@ -1171,12 +1170,23 @@ export default function App() {
   const [loaded, setLoaded] = useState(false);
 
   const [account, setAccount] = useState(null);
-  const [activeGroupId, setActiveGroupId] = useState(null);
+  const [activeGroupId, setActiveGroupIdRaw] = useState(() => {
+    try { return localStorage.getItem("birraporra_gid") || null; } catch { return null; }
+  });
+  const setActiveGroupId = (gid) => {
+    try {
+      if (gid) localStorage.setItem("birraporra_gid", gid);
+      else localStorage.removeItem("birraporra_gid");
+    } catch {}
+    setActiveGroupIdRaw(gid);
+  };
 
   const [tab, setTab] = useState("matches");
   const [betMatch, setBetMatch] = useState(null);
   const [showClasico, setShowClasico] = useState(false);
   const [showCoin, setShowCoin] = useState(false);
+  const [matchSection, setMatchSection] = useState("open"); // "open" | "live" | "done"
+  const [doneFilter, setDoneFilter] = useState("all"); // "all" | "hit" | "miss" | "no_bet"
   const [showRules, setShowRules] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -1196,7 +1206,7 @@ export default function App() {
     link.href = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap";
     document.head.appendChild(link);
     const s = document.createElement("style");
-    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(380px) rotate(720deg);opacity:0}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#d52b1e 0%,#d52b1e 33%,#006847 33%,#006847 66%,#002868 66%,#002868 100%);height:3px;width:100%}.hosts-stripe{background:linear-gradient(90deg,#d52b1e,#006847,#002868);height:4px;width:100%}`;
+    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(380px) rotate(720deg);opacity:0}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#e4151b 0%,#e4151b 33%,#009a5b 33%,#009a5b 66%,#0038a8 66%,#0038a8 100%);height:3px;width:100%}.hosts-stripe{background:linear-gradient(90deg,#e4151b,#009a5b,#0038a8);height:4px;width:100%}`;
     document.head.appendChild(s);
     const loadShared = async () => {
       // Carrega NOMÉS les dades compartides (matches, bets, etc.)
@@ -1977,9 +1987,9 @@ export default function App() {
         {tab === "matches" && (
           <div>
             {/* Birres disponibles — protagonista */}
-            <div style={{ background: "linear-gradient(135deg, #2a1d00, #0d0a00)", borderRadius: 16, padding: "18px 16px", marginBottom: 12, border: `2px solid ${member.birras > 0 ? C.gold : C.red}`, position: "relative", overflow: "hidden", textAlign: "center" }}>
+            <div style={{ background: C.card, borderRadius: 16, padding: "16px", marginBottom: 12, border: `2px solid ${member.birras > 0 ? C.gold : C.red}`, position: "relative", overflow: "hidden", textAlign: "center" }}>
               <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
-              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.amber, letterSpacing: 3, fontWeight: 600, marginBottom: 2 }}>LES TEVES BIRRES</div>
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 3, fontWeight: 600, marginBottom: 2 }}>LES TEVES BIRRES</div>
               <div style={{ fontFamily: "var(--pff)", fontSize: 64, color: member.birras > 0 ? C.gold : C.red, lineHeight: 1 }}>{member.birras}<span style={{ fontSize: 36 }}>🍺</span></div>
             </div>
             {/* Stats secundàries */}
@@ -1991,25 +2001,38 @@ export default function App() {
               {headerStat("PARTITS", `${myBets.length}`, C.muted)}
             </div>
 
-            {member.birras < 1 && (
+            {/* Selector Oberts / En joc / Finalitzats */}
+            <div style={{ display: "flex", background: C.card2, borderRadius: 10, padding: 3, gap: 2, marginBottom: 14 }}>
+              {[
+                { id: "open", label: `🟢 Oberts (${bettableMatches.length})` },
+                { id: "live", label: `🔴 En joc (${liveMatches.length})` },
+                { id: "done", label: `✓ Finalitzats (${finishedMatches.length})` },
+              ].map(s => (
+                <button key={s.id} onClick={() => setMatchSection(s.id)}
+                  style={{ flex: 1, padding: "8px 2px", background: matchSection === s.id ? C.red : "transparent", color: matchSection === s.id ? "#fff" : C.muted, border: "none", borderRadius: 8, fontFamily: "var(--pff2)", fontSize: 10, letterSpacing: 0.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {s.label}
+                </button>
+              ))}
+            </div>
+
+            {member.birras < 1 && matchSection === "open" && (
               <div style={{ background: "#200000", borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${C.red}`, textAlign: "center" }}>
                 <div style={{ fontFamily: "var(--pff)", fontSize: 20, color: C.red, letterSpacing: 1 }}>⚠ SENSE BIRRES</div>
                 <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Parla amb l'admin per recarregar.</div>
               </div>
             )}
 
-            {normalMatches.length === 0 && (
-              <div style={{ textAlign: "center", padding: "60px 20px", color: C.muted }}>
-                <div style={{ fontSize: 56, marginBottom: 12 }}>🏟️</div>
-                <p style={{ fontFamily: "var(--pff)", fontWeight: 800, fontSize: 22 }}>SENSE PARTITS</p>
-              </div>
-            )}
-
-            {leaguesOrdered.length > 0 && (<>
-              <div style={sty.sectionH}>🟢 POTS APOSTAR</div>
+            {/* OBERTS */}
+            {matchSection === "open" && (<>
+              {leaguesOrdered.length === 0 && (
+                <div style={{ textAlign: "center", padding: "60px 20px", color: C.muted }}>
+                  <div style={{ fontSize: 56, marginBottom: 12 }}>🏟️</div>
+                  <p style={{ fontFamily: "var(--pff)", fontSize: 22 }}>SENSE PARTITS OBERTS</p>
+                </div>
+              )}
               {leaguesOrdered.map(lg => (
                 <div key={lg} style={{ marginBottom: 18 }}>
-                  <div style={{ fontFamily: "var(--pff)", fontWeight: 800, fontSize: 12, color: C.amber, letterSpacing: 2, marginBottom: 8, paddingLeft: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 11, color: C.amber, letterSpacing: 2, marginBottom: 8, paddingLeft: 4, display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ width: 18, height: 2, background: C.amber, opacity: 0.6 }} />
                     {lg.toUpperCase()}
                     <span style={{ flex: 1, height: 1, background: C.border }} />
@@ -2020,14 +2043,44 @@ export default function App() {
               ))}
             </>)}
 
-            {liveMatches.length > 0 && (<>
-              <div style={{ ...sty.sectionH, color: C.red, marginTop: 18 }}>🔴 EN JOC</div>
-              {liveMatches.map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={null} member={member} />)}
+            {/* EN JOC */}
+            {matchSection === "live" && (<>
+              {liveMatches.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "60px 20px", color: C.muted }}>
+                  <div style={{ fontSize: 56, marginBottom: 12 }}>⏱️</div>
+                  <p style={{ fontFamily: "var(--pff)", fontSize: 22 }}>CAP PARTIT EN JOC ARA</p>
+                </div>
+              ) : liveMatches.map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={null} member={member} />)}
             </>)}
 
-            {finishedMatches.length > 0 && (<>
-              <div style={{ ...sty.sectionH, color: C.muted, marginTop: 18 }}>✓ FINALITZATS</div>
-              {finishedMatches.slice(0, 10).map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={null} member={member} />)}
+            {/* FINALITZATS */}
+            {matchSection === "done" && (<>
+              {/* Filtre encertades/fallades */}
+              <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
+                {[
+                  { id: "all", label: "Tots" },
+                  { id: "hit", label: "✓ Encertats" },
+                  { id: "miss", label: "✗ Fallats" },
+                  { id: "no_bet", label: "Sense aposta" },
+                ].map(f => (
+                  <button key={f.id} onClick={() => setDoneFilter(f.id)}
+                    style={{ flex: 1, padding: "6px 2px", background: doneFilter === f.id ? C.gold : C.card2, color: doneFilter === f.id ? "#000" : C.muted, border: `1px solid ${doneFilter === f.id ? C.gold : C.border}`, borderRadius: 8, fontFamily: "var(--pff2)", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+              {(() => {
+                const filtered = finishedMatches.filter(m => {
+                  const bet = myBets.find(b => b.matchId === m.id);
+                  if (doneFilter === "hit") return bet && bet.payout > 0;
+                  if (doneFilter === "miss") return bet && bet.payout === 0;
+                  if (doneFilter === "no_bet") return !bet;
+                  return true;
+                });
+                return filtered.length === 0
+                  ? <div style={{ textAlign: "center", padding: "40px 20px", color: C.muted }}><p>Cap resultat</p></div>
+                  : filtered.map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={null} member={member} />);
+              })()}
             </>)}
           </div>
         )}
@@ -2169,9 +2222,8 @@ export default function App() {
               </div>
             )}
 
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ marginBottom: 12 }}>
               <div style={sty.sectionH}>CLASSIFICACIÓ COMPLETA</div>
-              <WAButton text={shareLeaderboardText()} label="📲 Compartir" small />
             </div>
             {leaderboard.map((u, i) => {
               const isMe = u.id === member.id;
@@ -2218,19 +2270,6 @@ export default function App() {
               ))}
             </div>
 
-            {/* INSÍGNIES */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <div style={sty.sectionH}>🏅 INSÍGNIES ({myBadges.length}/{badges.length})</div>
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
-              {badges.map(bd => (
-                <div key={bd.id} title={bd.desc} style={{ background: bd.got ? "linear-gradient(135deg,#2a1d00,#1a1200)" : C.card, border: `1px solid ${bd.got ? C.gold : C.border}`, borderRadius: 10, padding: "10px 4px", textAlign: "center", opacity: bd.got ? 1 : 0.4 }}>
-                  <div style={{ fontSize: 26, marginBottom: 4, filter: bd.got ? "none" : "grayscale(1)" }}>{bd.icon}</div>
-                  <div style={{ fontSize: 8, color: bd.got ? C.gold : C.muted, fontFamily: "var(--pff2)", fontWeight: 700, letterSpacing: 0.3, lineHeight: 1.2 }}>{bd.name.toUpperCase()}</div>
-                </div>
-              ))}
-            </div>
-
             <div style={sty.sectionH}>HISTORIAL ({myBets.length})</div>
             {myBets.length === 0 ? (
               <div style={{ textAlign: "center", padding: 40, color: C.muted }}>
@@ -2265,6 +2304,95 @@ export default function App() {
         )}
 
         {/* ─── MÉS ─── */}
+        {/* ─── ESTADÍSTIQUES ─── */}
+        {tab === "stats" && (() => {
+          // Totes les porres del grup (totes les apostes dels membres del grup)
+          const gMemberIds = groupMembers.map(m => m.id);
+          const gBets = bets.filter(b => gMemberIds.includes(b.memberId) && b.settled);
+
+          // Per cada membre: estadístiques detallades
+          const playerStats = groupMembers.map(m => {
+            const acc = accounts.find(a => a.id === m.accountId);
+            const pBets = gBets.filter(b => b.memberId === m.id);
+            const wins = pBets.filter(b => b.payout > 0);
+            const losses = pBets.filter(b => b.payout === 0);
+            const totalBet = pBets.reduce((s, b) => s + b.amount, 0);
+            const totalWon = wins.reduce((s, b) => s + b.payout, 0);
+            const totalLost = losses.reduce((s, b) => s + b.amount, 0);
+            const netGain = totalWon - totalBet;
+            const biggestBet = pBets.length > 0 ? Math.max(...pBets.map(b => b.amount)) : 0;
+            const biggestLoss = losses.length > 0 ? Math.max(...losses.map(b => b.amount)) : 0;
+            const biggestWin = wins.length > 0 ? Math.max(...wins.map(b => b.payout - b.amount)) : 0;
+            return { id: m.id, name: acc?.name || "?", emoji: acc?.emoji || "🍺",
+              played: pBets.length, wins: wins.length, losses: losses.length,
+              totalBet, totalWon, totalLost, netGain, biggestBet, biggestLoss, biggestWin,
+              birras: m.birras };
+          }).filter(p => p.played > 0 || true);
+
+          const mostBets = [...playerStats].sort((a, b) => b.totalBet - a.totalBet)[0];
+          const mostLost = [...playerStats].sort((a, b) => b.totalLost - a.totalLost)[0];
+          const bigBet = [...playerStats].sort((a, b) => b.biggestBet - a.biggestBet)[0];
+          const bigLoss = [...playerStats].sort((a, b) => b.biggestLoss - a.biggestLoss)[0];
+          const bigWin = [...playerStats].sort((a, b) => b.biggestWin - a.biggestWin)[0];
+          const mostWins = [...playerStats].sort((a, b) => b.wins - a.wins)[0];
+          const bestRate = [...playerStats].filter(p => p.played >= 3).sort((a, b) => (b.wins/b.played) - (a.wins/a.played))[0];
+
+          const statCard = (icon, label, player, value) => player ? (
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div>
+                  <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, fontWeight: 700 }}>{icon} {label}</div>
+                  <div style={{ fontFamily: "var(--pff)", fontSize: 22, color: C.txt, marginTop: 4, letterSpacing: 1 }}>{player.emoji} {player.name}</div>
+                </div>
+                <div style={{ fontFamily: "var(--pff)", fontSize: 28, color: C.gold, textAlign: "right" }}>{value}</div>
+              </div>
+            </div>
+          ) : null;
+
+          return (
+            <div>
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.gold, letterSpacing: 3, marginBottom: 14, fontWeight: 700 }}>📈 ESTADÍSTIQUES DEL GRUP</div>
+
+              {gBets.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "60px 20px", color: C.muted }}>
+                  <div style={{ fontSize: 56, marginBottom: 12 }}>📊</div>
+                  <p style={{ fontFamily: "var(--pff)", fontSize: 22 }}>SENSE DADES YET</p>
+                  <p style={{ fontSize: 13, marginTop: 8 }}>Les estadístiques apareixeran quan hi hagi partits finalitzats.</p>
+                </div>
+              ) : (<>
+                {statCard("💸", "MÉS BIRRES APOSTADES", mostBets, `${mostBets?.totalBet}🍺`)}
+                {statCard("🔥", "MÉS VICTÒRIES", mostWins, `${mostWins?.wins} victòries`)}
+                {statCard("😅", "MÉS BIRRES PERDUDES", mostLost, `${mostLost?.totalLost}🍺`)}
+                {statCard("💰", "MAJOR APOSTA", bigBet, `${bigBet?.biggestBet}🍺`)}
+                {statCard("😭", "MAJOR DERROTA", bigLoss, `${bigLoss?.biggestLoss}🍺`)}
+                {statCard("🎉", "MAJOR VICTÒRIA", bigWin, `+${bigWin?.biggestWin}🍺`)}
+                {bestRate && statCard("🎯", "MILLOR % ENCERTS (mín. 3)", bestRate, `${Math.round(100*bestRate.wins/bestRate.played)}%`)}
+
+                <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.gold, letterSpacing: 3, marginTop: 20, marginBottom: 12, fontWeight: 700 }}>TAULA COMPLETA</div>
+                {[...playerStats].sort((a, b) => b.netGain - a.netGain).map(p => (
+                  <div key={p.id} style={{ background: p.id === member.id ? `${C.red}22` : C.card, border: `1px solid ${p.id === member.id ? C.red : C.border}`, borderRadius: 10, padding: "10px 14px", marginBottom: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <span style={{ fontSize: 22 }}>{p.emoji}</span>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: "var(--pff2)", fontSize: 13, fontWeight: 700, color: C.txt }}>{p.name}</div>
+                        <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>
+                          {p.wins}✓/{p.played} · apostat {p.totalBet}🍺 · perdut {p.totalLost}🍺
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: "var(--pff)", fontSize: 18, color: p.netGain >= 0 ? C.green : C.red }}>
+                          {p.netGain >= 0 ? "+" : ""}{p.netGain}🍺
+                        </div>
+                        <div style={{ fontSize: 10, color: C.muted }}>{p.birras}🍺 actuals</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>)}
+            </div>
+          );
+        })()}
+
         {tab === "more" && (
           <div>
             <div style={sty.sectionH}>PERFIL</div>
@@ -2313,6 +2441,7 @@ export default function App() {
           { id: "matches", i: "⚽", l: "PARTITS" },
           { id: "jackpot", i: "🏆", l: "JACKPOT" },
           { id: "ranking", i: "📊", l: "RANKING" },
+          { id: "stats", i: "📈", l: "STATS" },
           { id: "more", i: "⋯", l: "MÉS" },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "10px 2px 8px", background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", borderTop: `2px solid ${tab === t.id ? C.gold : "transparent"}`, position: "relative" }}>
