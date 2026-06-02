@@ -1296,7 +1296,7 @@ export default function App() {
   const doJoinGroupV4 = async ({ code }, setErr) => {
     if (!code || !code.trim()) { setErr("Codi buit"); return; }
     const latestGroups = await dbGet(KEYS.groups);
-    const grps = latestGroups || [];
+    let grps = latestGroups || [];
     const trimmedCode = code.trim().toUpperCase();
     const found = grps.find(g => (g.joinCode || "").toUpperCase() === trimmedCode);
     if (!found) { setErr("Codi de grup incorrecte"); return; }
@@ -1316,7 +1316,12 @@ export default function App() {
         joinedAt: Date.now(),
       };
       mbs = [...mbs, newMember];
-      await dbSet(KEYS.members, mbs);
+      // +10€ al pot del grup automàticament
+      grps = grps.map(g => g.id === found.id ? { ...g, bote_EUR: (g.bote_EUR || 0) + CFG.ENTRY_EUR } : g);
+      await Promise.all([
+        dbSet(KEYS.members, mbs),
+        dbSet(KEYS.groups, grps),
+      ]);
       setMembers(mbs);
     }
     setGroups(grps);
@@ -1900,10 +1905,14 @@ export default function App() {
 
   // Garantir que el membre existeix abans d'entrar al grup
   const enterGroup = async (gid) => {
-    const latestMembers = await dbGet(KEYS.members);
+    const [latestMembers, latestGroups] = await Promise.all([
+      dbGet(KEYS.members), dbGet(KEYS.groups),
+    ]);
     let mbs = latestMembers || members;
+    let grps = latestGroups || groups;
     const existing = mbs.find(m => m.accountId === account.id && m.groupId === gid);
     if (!existing) {
+      // Membre nou: crear-lo i sumar l'entrada al pot del grup
       const newMember = {
         id: uid(),
         accountId: account.id,
@@ -1914,11 +1923,17 @@ export default function App() {
         joinedAt: Date.now(),
       };
       mbs = [...mbs, newMember];
-      await dbSet(KEYS.members, mbs);
+      // +10€ al pot del grup
+      grps = grps.map(g => g.id === gid ? { ...g, bote_EUR: (g.bote_EUR || 0) + CFG.ENTRY_EUR } : g);
+      await Promise.all([
+        dbSet(KEYS.members, mbs),
+        dbSet(KEYS.groups, grps),
+      ]);
       setMembers(mbs);
+      setGroups(grps);
     } else if (latestMembers) {
-      // Sincronitzem si hi havia un membre que no estava en estat local
       setMembers(mbs);
+      if (latestGroups) setGroups(grps);
     }
     setActiveGroupId(gid);
   };
