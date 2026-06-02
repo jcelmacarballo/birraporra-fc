@@ -272,10 +272,10 @@ function SupabaseLoginScreen({ onAdmin }) {
       <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
 
       <div onClick={onLogoTap} style={{ textAlign: "center", marginBottom: 28, cursor: "pointer", userSelect: "none" }}>
-        <div style={{ fontSize: 60, marginBottom: 8 }}>🏆</div>
-        <div style={{ fontFamily: "var(--pff)", fontSize: 38, color: C.gold, letterSpacing: 4, lineHeight: 1 }}>BIRRAPORRA</div>
-        <div style={{ fontFamily: "var(--pff2)", fontSize: 13, color: C.muted, letterSpacing: 6, marginTop: 4, fontWeight: 600 }}>MUNDIAL 2026</div>
-        <div style={{ display: "inline-block", background: C.red, color: "#fff", fontFamily: "var(--pff2)", fontSize: 10, letterSpacing: 2, padding: "3px 12px", borderRadius: 3, marginTop: 10, fontWeight: 700 }}>🌍 FIFA WORLD CUP</div>
+        <Logo26 size={88} />
+        <div style={{ fontFamily: "var(--pff)", fontSize: 32, color: C.gold, letterSpacing: 3, lineHeight: 1, marginTop: 8 }}>BIRRAPORRA</div>
+        <div style={{ fontFamily: "var(--pff2)", fontSize: 12, color: C.muted, letterSpacing: 5, marginTop: 4, fontWeight: 600 }}>WE ARE 26</div>
+        <div style={{ display: "inline-block", background: "linear-gradient(90deg,#c8102e,#f5c518,#1d9e75)", color: "#fff", fontFamily: "var(--pff2)", fontSize: 9, letterSpacing: 3, padding: "3px 12px", borderRadius: 3, marginTop: 10, fontWeight: 700 }}>CANADA · MEXICO · USA</div>
       </div>
 
       <div style={{ width: "100%", maxWidth: 340, background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: 22, position: "relative", overflow: "hidden" }}>
@@ -361,9 +361,9 @@ function GroupPicker({ account, groups, members, adminMode, onJoinGroup, onCreat
       <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
 
       {/* Header */}
-      <div onClick={onLogoTap} style={{ textAlign: "center", marginTop: 30, marginBottom: 28, cursor: "pointer", userSelect: "none" }}>
-        <div style={{ fontSize: 48, marginBottom: 6 }}>👥</div>
-        <div style={{ fontFamily: "var(--pff)", fontSize: 30, color: C.gold, letterSpacing: 3, lineHeight: 1 }}>ELS TEUS GRUPS</div>
+      <div onClick={onLogoTap} style={{ textAlign: "center", marginTop: 20, marginBottom: 24, cursor: "pointer", userSelect: "none" }}>
+        <Logo26 size={56} />
+        <div style={{ fontFamily: "var(--pff)", fontSize: 26, color: C.gold, letterSpacing: 2, lineHeight: 1, marginTop: 8 }}>ELS TEUS GRUPS</div>
         <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 3, marginTop: 6, fontWeight: 600 }}>
           {account.emoji} {account.name.toUpperCase()}{adminMode && " · 🛠 ADMIN"}
         </div>
@@ -505,12 +505,27 @@ function RulesScreen({ onClose, firstTime }) {
   );
 }
 
-// Badge de selecció amb codi de 3 lletres (sempre visible) + emoji si funciona
+// Badge de selecció amb codi de 3 lletres + emoji bandera quan el dispositiu el suporta
 function FlagBadge({ name, size = 12 }) {
-  const code = teamCode(name);
-  if (!code) return null;
+  const nation = findNation(name);
+  if (!nation) return null;
   return (
-    <span style={{ display: "inline-block", background: C.card2, color: C.gold, fontFamily: "var(--pff2)", fontWeight: 700, fontSize: size, letterSpacing: 1, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.border}` }}>{code}</span>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: C.card2, color: C.gold, fontFamily: "var(--pff2)", fontWeight: 700, fontSize: size, letterSpacing: 1, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.border}` }}>
+      <span style={{ fontSize: size + 2 }}>{nation.f}</span>
+      <span>{nation.c}</span>
+    </span>
+  );
+}
+
+// Logo "26" estilitzat (el 2 apilat sobre el 6) inspirat en l'oficial Mundial 2026
+function Logo26({ size = 80, showTrophy = true }) {
+  const stripe = "linear-gradient(135deg, #c8102e 0%, #c8102e 33%, #f5c518 33%, #f5c518 66%, #1d9e75 66%, #1d9e75 100%)";
+  return (
+    <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", lineHeight: 0.8, fontFamily: "var(--pff)", position: "relative" }}>
+      <span style={{ fontSize: size, color: "transparent", background: stripe, WebkitBackgroundClip: "text", backgroundClip: "text", fontWeight: 900, letterSpacing: -size * 0.05 }}>2</span>
+      <span style={{ fontSize: size, color: "transparent", background: stripe, WebkitBackgroundClip: "text", backgroundClip: "text", fontWeight: 900, marginTop: -size * 0.25, letterSpacing: -size * 0.05 }}>6</span>
+      {showTrophy && <span style={{ position: "absolute", top: size * 0.45, fontSize: size * 0.55, filter: "drop-shadow(0 0 4px rgba(245,197,24,0.5))" }}>🏆</span>}
+    </div>
   );
 }
 
@@ -933,7 +948,7 @@ function AdminPanel({ data, handlers, onClose }) {
   const { groups, members, accounts, matches } = data;
   const [tab, setTab] = useState("matches");
   const [selGroupId, setSelGroupId] = useState(groups[0]?.id || "");
-  const [nm, setNm] = useState({ home: "", away: "", date: "", league: LEAGUES[0], cuotas: { H: "1.50", D: "3.00", A: "5.00" }, spain: false });
+  const [nm, setNm] = useState({ home: "", away: "", date: "", league: LEAGUES[0], cuotas: { H: "1.50", D: "3.00", A: "5.00" }, spain: false, applyToAllGroups: true });
   const [results, setResults] = useState({});
   const [saved, setSaved] = useState({});
   const [rechargeMember, setRechargeMember] = useState("");
@@ -946,15 +961,17 @@ function AdminPanel({ data, handlers, onClose }) {
   const memberLabel = mid => { const m = members.find(m => m.id === mid); const a = accounts.find(a => a.id === m?.accountId); return `${a?.emoji || "🍺"} ${a?.name || "?"}`; };
 
   const submitMatch = async () => {
-    if (!nm.home.trim() || !nm.away.trim() || !selGroupId) return;
+    if (!nm.home.trim() || !nm.away.trim()) return;
+    if (nm.home.trim() === nm.away.trim()) return alert("Equip local i visitant no poden ser iguals");
+    if (!nm.applyToAllGroups && !selGroupId) return alert("Selecciona un grup");
     const cuotas = { H: parseFloat(nm.cuotas.H), D: parseFloat(nm.cuotas.D), A: parseFloat(nm.cuotas.A) };
     if ([cuotas.H, cuotas.D, cuotas.A].some(c => isNaN(c) || c < 1)) return alert("Quotes no vàlides");
     await handlers.addMatch({ ...nm, cuotas, groupId: selGroupId });
-    setNm({ home: "", away: "", date: "", league: nm.league, cuotas: { H: "1.50", D: "3.00", A: "5.00" }, spain: false });
+    setNm({ home: "", away: "", date: "", league: nm.league, cuotas: { H: "1.50", D: "3.00", A: "5.00" }, spain: false, applyToAllGroups: nm.applyToAllGroups });
   };
   const prefillSpain = async () => {
-    if (!selGroupId) { alert("Selecciona un grup primer"); return; }
-    if (!confirm("Afegir els 3 partits d'Espanya de la fase de grups?")) return;
+    if (groups.length === 0) { alert("Crea un grup primer"); return; }
+    if (!confirm("Afegir els 3 partits d'Espanya de la fase de grups a TOTS els grups?")) return;
     // Dates oficials Mundial 2026 (horari peninsular aproximat)
     const spainMatches = [
       { home: "Espanya", away: "Cap Verd", date: "2026-06-15T18:00", league: "Fase de Grup", cuotas: { H: 1.25, D: 5.5, A: 11.0 } },
@@ -962,9 +979,9 @@ function AdminPanel({ data, handlers, onClose }) {
       { home: "Espanya", away: "Uruguai", date: "2026-06-26T03:00", league: "Fase de Grup", cuotas: { H: 1.9, D: 3.3, A: 3.8 } },
     ];
     for (const m of spainMatches) {
-      await handlers.addMatch({ ...m, spain: true, groupId: selGroupId });
+      await handlers.addMatch({ ...m, spain: true, applyToAllGroups: true, groupId: selGroupId });
     }
-    alert("✓ 3 partits d'Espanya afegits!");
+    alert("✓ 3 partits d'Espanya afegits a tots els grups!");
   };
   const submitResult = async (id) => {
     const r = results[id]; if (!r || r.home === "" || r.away === "") return;
@@ -1029,6 +1046,10 @@ function AdminPanel({ data, handlers, onClose }) {
                 ))}
               </div>
             </div>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d2200", padding: 12, borderRadius: 8, cursor: "pointer", border: `1px solid ${C.green}` }}>
+              <input type="checkbox" checked={nm.applyToAllGroups} onChange={e => setNm(p => ({ ...p, applyToAllGroups: e.target.checked }))} style={{ accentColor: C.green, width: 18, height: 18 }} />
+              <div><div style={{ fontFamily: "var(--pff)", fontSize: 16, color: C.green, letterSpacing: 1 }}>🌐 AFEGIR A TOTS ELS GRUPS</div><div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>El partit es crearà a tots els grups existents ({groups.length}). Si desactives, només al grup seleccionat.</div></div>
+            </label>
             <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#2a0a14", padding: 12, borderRadius: 8, cursor: "pointer", border: `1px solid ${C.red}` }}>
               <input type="checkbox" checked={nm.spain} onChange={e => setNm(p => ({ ...p, spain: e.target.checked }))} style={{ accentColor: C.red, width: 18, height: 18 }} />
               <div><div style={{ fontFamily: "var(--pff)", fontSize: 16, color: C.red, letterSpacing: 1 }}>🇪🇸 PARTIT D'ESPANYA</div><div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Compta pel Jackpot Selecció Espanyola</div></div>
@@ -1109,7 +1130,24 @@ function AdminPanel({ data, handlers, onClose }) {
               })}
             </div>
             <button onClick={() => { if (confirm("Tancar mes?")) handlers.closeMonth(selGroupId); }} style={{ ...sty.btnPrimary, width: "100%", background: C.green, color: "#fff", marginBottom: 8 }}>🏆 TANCAR MES</button>
-            <button onClick={() => { if (confirm("Doblar el pot?")) handlers.doubleMonth(selGroupId); }} style={{ ...sty.btnPrimary, width: "100%", background: C.blue, color: "#fff" }}>🎲 DOBLAR</button>
+            <button onClick={() => { if (confirm("Doblar el pot?")) handlers.doubleMonth(selGroupId); }} style={{ ...sty.btnPrimary, width: "100%", background: C.blue, color: "#fff", marginBottom: 20 }}>🎲 DOBLAR</button>
+
+            {/* Zona perillosa: esborrar grup */}
+            <div style={{ borderTop: `1px solid ${C.red}`, paddingTop: 16, marginTop: 8 }}>
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.red, letterSpacing: 2, marginBottom: 8, fontWeight: 700 }}>⚠ ZONA PERILLOSA</div>
+              <button
+                onClick={async () => {
+                  if (!confirm(`Esborrar el grup "${group.name}"?\n\nAixò eliminarà:\n· Tots els membres del grup\n· Tots els partits del grup\n· Totes les porres del grup\n· El Jackpot acumulat`)) return;
+                  if (!confirm("Ho confirmes? Aquesta acció NO es pot desfer.")) return;
+                  await handlers.deleteGroup(selGroupId);
+                  // Tancar panell o canviar de grup seleccionat
+                  const remaining = groups.filter(g => g.id !== selGroupId);
+                  setSelGroupId(remaining[0]?.id || "");
+                }}
+                style={{ width: "100%", background: "#2a0000", color: C.red, border: `1px solid ${C.red}`, borderRadius: 10, padding: "12px", fontFamily: "var(--pff)", fontSize: 16, letterSpacing: 2, cursor: "pointer" }}>
+                🗑️ ESBORRAR GRUP
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -1158,7 +1196,7 @@ export default function App() {
     link.href = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap";
     document.head.appendChild(link);
     const s = document.createElement("style");
-    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(380px) rotate(720deg);opacity:0}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#c8102e 0%,#c8102e 33%,#f5c518 33%,#f5c518 66%,#164d24 66%,#164d24 100%);height:3px;width:100%}`;
+    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(380px) rotate(720deg);opacity:0}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#d52b1e 0%,#d52b1e 33%,#006847 33%,#006847 66%,#002868 66%,#002868 100%);height:3px;width:100%}.hosts-stripe{background:linear-gradient(90deg,#d52b1e,#006847,#002868);height:4px;width:100%}`;
     document.head.appendChild(s);
     const loadShared = async () => {
       // Carrega NOMÉS les dades compartides (matches, bets, etc.)
@@ -1513,75 +1551,95 @@ export default function App() {
     else alert("Contrasenya incorrecta. Pista: gol2024");
   };
   const adminAddMatch = async (data) => {
+    // Si applyToAllGroups, crea una còpia del partit a cada grup existent.
+    // Tots els partits comparteixen el mateix matchKey perquè el resultat es propagui després.
     const ts = new Date(data.date).getTime() || Date.now();
-    const m = {
-      id: uid(), groupId: data.groupId,
+    const matchKey = data.matchKey || uid(); // identificador compartit entre còpies
+    const baseMatch = {
       home: data.home.trim(), away: data.away.trim(), date: data.date,
       league: data.league, cuotas: data.cuotas,
       spain: !!data.spain,
       status: "open", result: null, settledAt: null,
+      matchKey, // per propagar resultats entre còpies
     };
-    const updated = [...matches, m];
+
+    let toAdd = [];
+    if (data.applyToAllGroups) {
+      const targetGroups = groups.length > 0 ? groups : [{ id: data.groupId }];
+      toAdd = targetGroups.map(g => ({ ...baseMatch, id: uid(), groupId: g.id }));
+    } else {
+      toAdd = [{ ...baseMatch, id: uid(), groupId: data.groupId }];
+    }
+    const updated = [...matches, ...toAdd];
     setMatches(updated); await dbSet(KEYS.matches, updated);
-    showToast(data.spain ? "Partit d'Espanya afegit 🇪🇸" : "Partit afegit ⚽", "success");
+    const label = data.applyToAllGroups
+      ? `Partit afegit a ${toAdd.length} grup${toAdd.length === 1 ? "" : "s"} ${data.spain ? "🇪🇸" : "⚽"}`
+      : (data.spain ? "Partit d'Espanya afegit 🇪🇸" : "Partit afegit ⚽");
+    showToast(label, "success");
   };
 
   const adminSetResult = async (matchId, result) => {
-    const match = matches.find(m => m.id === matchId);
-    const updatedMatch = { ...match, status: "finished", result, settledAt: Date.now() };
-    const updatedMatches = matches.map(m => m.id === matchId ? updatedMatch : m);
+    const sourceMatch = matches.find(m => m.id === matchId);
+    if (!sourceMatch) return;
+    // Trobar totes les còpies (si té matchKey, totes les que comparteixen clau; si no, només aquesta)
+    const sameMatches = sourceMatch.matchKey
+      ? matches.filter(m => m.matchKey === sourceMatch.matchKey && m.status !== "finished")
+      : [sourceMatch];
 
-    // 1. Settlement de les porres normals
-    let newBets = settleBets(bets, updatedMatch);
+    let updatedMatches = [...matches];
+    let newBets = [...bets];
     let updatedMembers = [...members];
-    const matchBets = newBets.filter(b => b.matchId === matchId);
-    for (const b of matchBets) {
-      if (b.payout > 0) updatedMembers = updatedMembers.map(m => m.id === b.memberId ? { ...m, birras: m.birras + b.payout } : m);
-    }
-
-    // 2. Settlement del Jackpot Espanya (si el partit és d'Espanya)
     let updatedClasico = clasico;
-    let espanyaToast = null;
-    if (updatedMatch.spain) {
-      const gid = updatedMatch.groupId;
-      const groupData = clasico[gid] || { byMatch: {}, settled: {}, carry: 0 };
-      const matchPot = groupData.byMatch[matchId] || { entries: [], total: 0 };
-      const alreadySettled = groupData.settled?.[matchId];
-      if (!alreadySettled) {
-        // Buscar guanyadors: predicció exacta
-        const winners = matchPot.entries.filter(e =>
-          e.home === result.home && e.away === result.away);
-        const totalPot = (matchPot.total || 0) + (groupData.carry || 0);
-        let newCarry = groupData.carry || 0;
-        if (winners.length > 0 && totalPot > 0) {
-          // Repartim proporcional a l'aposta de cadascú
-          const totalWinnersBet = winners.reduce((s, w) => s + w.amount, 0);
-          for (const w of winners) {
-            const share = Math.floor(totalPot * (w.amount / totalWinnersBet));
-            updatedMembers = updatedMembers.map(m => m.id === w.memberId ? { ...m, birras: m.birras + share } : m);
+    const espanyaToasts = [];
+
+    for (const match of sameMatches) {
+      const updatedMatch = { ...match, status: "finished", result, settledAt: Date.now() };
+      updatedMatches = updatedMatches.map(m => m.id === match.id ? updatedMatch : m);
+
+      // 1. Settlement de les porres normals d'aquesta còpia
+      newBets = settleBets(newBets, updatedMatch);
+      const matchBets = newBets.filter(b => b.matchId === match.id);
+      for (const b of matchBets) {
+        if (b.payout > 0) updatedMembers = updatedMembers.map(m => m.id === b.memberId ? { ...m, birras: m.birras + b.payout } : m);
+      }
+
+      // 2. Settlement del Jackpot Espanya per aquesta còpia
+      if (updatedMatch.spain) {
+        const gid = updatedMatch.groupId;
+        const groupData = updatedClasico[gid] || { byMatch: {}, settled: {}, carry: 0 };
+        const matchPot = groupData.byMatch[match.id] || { entries: [], total: 0 };
+        const alreadySettled = groupData.settled?.[match.id];
+        if (!alreadySettled) {
+          const winners = matchPot.entries.filter(e => e.home === result.home && e.away === result.away);
+          const totalPot = (matchPot.total || 0) + (groupData.carry || 0);
+          let newCarry = groupData.carry || 0;
+          if (winners.length > 0 && totalPot > 0) {
+            const totalWinnersBet = winners.reduce((s, w) => s + w.amount, 0);
+            for (const w of winners) {
+              const share = Math.floor(totalPot * (w.amount / totalWinnersBet));
+              updatedMembers = updatedMembers.map(m => m.id === w.memberId ? { ...m, birras: m.birras + share } : m);
+            }
+            newCarry = 0;
+            espanyaToasts.push(`🇪🇸 JACKPOT! ${winners.length} guanyador(s) reparteixen ${totalPot}🍺`);
+          } else if (matchPot.total > 0) {
+            newCarry = totalPot;
+            espanyaToasts.push(`🇪🇸 Ningú no ha encertat. ${totalPot}🍺 s'acumulen`);
           }
-          newCarry = 0;
-          espanyaToast = `🇪🇸 JACKPOT ESPANYA! ${winners.length} guanyador(s) reparteixen ${totalPot}🍺`;
-        } else if (matchPot.total > 0) {
-          // Ningú no encerta — s'acumula al següent partit d'Espanya
-          newCarry = totalPot;
-          espanyaToast = `🇪🇸 Ningú no ha encertat. ${totalPot}🍺 s'acumulen pel pròxim partit`;
-        }
-        updatedClasico = {
-          ...clasico,
-          [gid]: {
-            ...groupData,
-            carry: newCarry,
-            settled: {
-              ...(groupData.settled || {}),
-              [matchId]: {
-                winners: winners.map(w => ({ memberId: w.memberId, amount: w.amount })),
-                totalPot,
-                date: Date.now(),
+          updatedClasico = {
+            ...updatedClasico,
+            [gid]: {
+              ...groupData,
+              carry: newCarry,
+              settled: {
+                ...(groupData.settled || {}),
+                [match.id]: {
+                  winners: winners.map(w => ({ memberId: w.memberId, amount: w.amount })),
+                  totalPot, date: Date.now(),
+                },
               },
             },
-          },
-        };
+          };
+        }
       }
     }
 
@@ -1590,8 +1648,9 @@ export default function App() {
     await dbSet(KEYS.bets, newBets);
     await dbSet(KEYS.members, updatedMembers);
     await dbSet(KEYS.clasico, updatedClasico);
-    showToast("Resultat desat 💰", "success");
-    if (espanyaToast) setTimeout(() => showToast(espanyaToast, "success"), 1200);
+    const n = sameMatches.length;
+    showToast(`Resultat desat ${n > 1 ? `a ${n} grups` : ""} 💰`, "success");
+    espanyaToasts.slice(0, 1).forEach((t, i) => setTimeout(() => showToast(t, "success"), 1200 + i * 800));
   };
 
   const adminRecharge = async (memberId, eur) => {
@@ -1614,6 +1673,28 @@ export default function App() {
     const um = members.map(m => m.groupId === groupId ? { ...m, birras: Math.floor(m.birras * (1 + CFG.DOUBLE_BONUS)) } : m);
     setMembers(um); await dbSet(KEYS.members, um);
     showToast(`Doblat! +${Math.round(CFG.DOUBLE_BONUS * 100)}% 🎲`, "success");
+  };
+  const adminDeleteGroup = async (groupId) => {
+    // Esborra el grup i totes les dades relacionades (membres, partits, porres, jackpot)
+    const ug = groups.filter(g => g.id !== groupId);
+    const um = members.filter(m => m.groupId !== groupId);
+    const umt = matches.filter(m => m.groupId !== groupId);
+    const ub = bets.filter(b => {
+      const mb = members.find(mm => mm.id === b.memberId);
+      return mb && mb.groupId !== groupId;
+    });
+    const ucl = { ...clasico };
+    delete ucl[groupId];
+    setGroups(ug); setMembers(um); setMatches(umt); setBets(ub); setClasico(ucl);
+    await Promise.all([
+      dbSet(KEYS.groups, ug),
+      dbSet(KEYS.members, um),
+      dbSet(KEYS.matches, umt),
+      dbSet(KEYS.bets, ub),
+      dbSet(KEYS.clasico, ucl),
+    ]);
+    if (activeGroupId === groupId) setActiveGroupId(null);
+    showToast("Grup esborrat 🗑️", "success");
   };
 
   // ── DERIVED ──────────────────────────────────────────────────────────────
@@ -1874,11 +1955,11 @@ export default function App() {
       {/* HEADER */}
       <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
         <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <span style={{ fontSize: 28 }}>🏆</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Logo26 size={28} showTrophy={false} />
           <div>
-            <div style={{ fontFamily: "var(--pff)", fontSize: 22, color: C.gold, lineHeight: 1, letterSpacing: 2 }}>BIRRAPORRA</div>
-            <div style={{ fontFamily: "var(--pff2)", fontSize: 9, color: C.muted, marginTop: 2, letterSpacing: 3, fontWeight: 600 }}>MUNDIAL 2026 · {account.emoji || "🍺"} {account.name}</div>
+            <div style={{ fontFamily: "var(--pff)", fontSize: 20, color: C.gold, lineHeight: 1, letterSpacing: 2 }}>BIRRAPORRA</div>
+            <div style={{ fontFamily: "var(--pff2)", fontSize: 9, color: C.muted, marginTop: 2, letterSpacing: 2, fontWeight: 600 }}>{currentGroup?.name} · {account.emoji || "🍺"} {account.name}</div>
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -2257,7 +2338,7 @@ export default function App() {
       {showAdmin && adminMode && (
         <AdminPanel
           data={{ groups, members, accounts, matches }}
-          handlers={{ addMatch: adminAddMatch, setResult: adminSetResult, recharge: adminRecharge, closeMonth: adminCloseMonth, doubleMonth: adminDouble }}
+          handlers={{ addMatch: adminAddMatch, setResult: adminSetResult, recharge: adminRecharge, closeMonth: adminCloseMonth, doubleMonth: adminDouble, deleteGroup: adminDeleteGroup }}
           onClose={() => setShowAdmin(false)}
         />
       )}
