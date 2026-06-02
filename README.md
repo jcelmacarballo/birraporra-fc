@@ -105,7 +105,7 @@ Des d'ara, cada `git push` desplega automàticament.
 
 ### L'admin (tu)
 1. Obre l'app i registra't
-2. Toca el logo **5 vegades** per activar el mode admin → contrasenya `gol2024`
+2. Toca el logo **5 vegades** per activar el mode admin → contrasenya `X`
 3. Crea un grup → es genera un codi de 6 caràcters (ex: `ABC123`)
 4. Comparteix el codi als amics per WhatsApp
 5. Afegeix partits des del panell admin (o usa el botó de precarregar Espanya)
