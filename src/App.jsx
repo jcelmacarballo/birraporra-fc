@@ -16,6 +16,7 @@ const CFG = {
   COIN_ENTRY: 5, COIN_MAX_DOUBLES: 3,
   // Jackpot Espanya: cost mínim d'apostar al jackpot per partit d'Espanya (en birres)
   ESPANYA_MIN_BET: 5,
+  DOUBLE_BONUS: 0.20,
 };
 
 const C = {
@@ -27,6 +28,58 @@ const C = {
 
 const LEAGUES = ["Fase de Grup", "1/16", "Vuitens", "Quarts", "Semifinal", "Final"];
 const AVATAR_EMOJIS = ["🍺", "⚽", "🔥", "🏆", "😈", "🎯", "👑", "💪", "🦁", "🐂", "🦅", "🐺", "⚡", "💀", "🤘", "🍀"];
+
+// Seleccions del Mundial: nom, codi 3 lletres, emoji bandera
+const NATIONS = [
+  { n: "Espanya", c: "ESP", f: "🇪🇸" },
+  { n: "Argentina", c: "ARG", f: "🇦🇷" },
+  { n: "França", c: "FRA", f: "🇫🇷" },
+  { n: "Brasil", c: "BRA", f: "🇧🇷" },
+  { n: "Anglaterra", c: "ENG", f: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+  { n: "Portugal", c: "POR", f: "🇵🇹" },
+  { n: "Alemanya", c: "GER", f: "🇩🇪" },
+  { n: "Països Baixos", c: "NED", f: "🇳🇱" },
+  { n: "Itàlia", c: "ITA", f: "🇮🇹" },
+  { n: "Bèlgica", c: "BEL", f: "🇧🇪" },
+  { n: "Croàcia", c: "CRO", f: "🇭🇷" },
+  { n: "Uruguai", c: "URU", f: "🇺🇾" },
+  { n: "Aràbia Saudí", c: "KSA", f: "🇸🇦" },
+  { n: "Cap Verd", c: "CPV", f: "🇨🇻" },
+  { n: "Mèxic", c: "MEX", f: "🇲🇽" },
+  { n: "Estats Units", c: "USA", f: "🇺🇸" },
+  { n: "Canadà", c: "CAN", f: "🇨🇦" },
+  { n: "Japó", c: "JPN", f: "🇯🇵" },
+  { n: "Corea del Sud", c: "KOR", f: "🇰🇷" },
+  { n: "Marroc", c: "MAR", f: "🇲🇦" },
+  { n: "Colòmbia", c: "COL", f: "🇨🇴" },
+  { n: "Equador", c: "ECU", f: "🇪🇨" },
+  { n: "Suïssa", c: "SUI", f: "🇨🇭" },
+  { n: "Senegal", c: "SEN", f: "🇸🇳" },
+  { n: "Ghana", c: "GHA", f: "🇬🇭" },
+  { n: "Nigèria", c: "NGA", f: "🇳🇬" },
+  { n: "Camerun", c: "CMR", f: "🇨🇲" },
+  { n: "Austràlia", c: "AUS", f: "🇦🇺" },
+  { n: "Polònia", c: "POL", f: "🇵🇱" },
+  { n: "Dinamarca", c: "DEN", f: "🇩🇰" },
+  { n: "Sèrbia", c: "SRB", f: "🇷🇸" },
+  { n: "Gal·les", c: "WAL", f: "🏴󠁧󠁢󠁷󠁬󠁳󠁿" },
+  { n: "Àustria", c: "AUT", f: "🇦🇹" },
+  { n: "Noruega", c: "NOR", f: "🇳🇴" },
+  { n: "Turquia", c: "TUR", f: "🇹🇷" },
+  { n: "Egipte", c: "EGY", f: "🇪🇬" },
+  { n: "Iran", c: "IRN", f: "🇮🇷" },
+  { n: "Qatar", c: "QAT", f: "🇶🇦" },
+];
+const NATION_NAMES = NATIONS.map(x => x.n);
+const findNation = (name) => {
+  if (!name) return null;
+  const key = name.trim().toLowerCase();
+  return NATIONS.find(x => x.n.toLowerCase() === key || x.c.toLowerCase() === key) || null;
+};
+// Codi de 3 lletres (es veu a tot arreu, sense problemes d'emoji)
+const teamCode = (name) => { const n = findNation(name); return n ? n.c : ""; };
+const teamFlag = (name) => { const n = findNation(name); return n ? n.f : ""; };
+
 
 // ─────────────────────────── 2. STORAGE & UTILS ───────────────────────────
 const KEYS = {
@@ -64,6 +117,21 @@ const scoreKey = (h, a) => `${h}-${a}`;
 const daysSince = ts => !ts ? Infinity : Math.floor((Date.now() - ts) / 86400000);
 const weekKey = (ts = Date.now()) => { const d = new Date(ts); d.setHours(0,0,0,0); const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); return d.toISOString().slice(0,10); };
 const matchStarted = m => m.date && new Date(m.date).getTime() <= Date.now();
+
+// Compte enrere fins a una data. Retorna {text, urgent} o null si ja ha passat
+const countdown = (dateStr) => {
+  if (!dateStr) return null;
+  const diff = new Date(dateStr).getTime() - Date.now();
+  if (diff <= 0) return null;
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const d = Math.floor(h / 24);
+  let text;
+  if (d >= 1) text = `${d}d ${h % 24}h`;
+  else if (h >= 1) text = `${h}h ${m}min`;
+  else text = `${m}min`;
+  return { text, urgent: h < 3 };
+};
 const canBet = m => m.status !== "finished" && !matchStarted(m);
 const isMondayMorning = () => { const d = new Date(); return d.getDay() === 1 && d.getHours() >= 8 && d.getHours() < 13; };
 
@@ -121,6 +189,25 @@ function Toast({ toast }) {
   if (!toast) return null;
   const palette = { success: { bg: "#0d2200", border: C.green }, info: { bg: "#0a1a2e", border: C.blue }, warn: { bg: "#2a1800", border: C.amber }, error: { bg: "#2a0000", border: C.red } }[toast.type] || { bg: C.card, border: C.border };
   return <div style={{ position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", background: palette.bg, color: C.txt, padding: "10px 18px", borderRadius: 10, border: `1px solid ${palette.border}`, zIndex: 400, fontSize: 14, fontWeight: 600, animation: "slideUp 0.3s ease", maxWidth: "90vw" }}>{toast.msg}</div>;
+}
+
+function Confetti() {
+  const pieces = ["🎉", "🍺", "🏆", "⚽", "🥇", "🎊", "✨", "🇪🇸"];
+  const items = Array.from({ length: 28 }, (_, i) => ({
+    id: i,
+    emoji: pieces[i % pieces.length],
+    left: Math.random() * 100,
+    delay: Math.random() * 0.8,
+    dur: 1.8 + Math.random() * 1.4,
+    size: 16 + Math.random() * 16,
+  }));
+  return (
+    <div style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 500, overflow: "hidden" }}>
+      {items.map(it => (
+        <span key={it.id} style={{ position: "absolute", top: 0, left: `${it.left}%`, fontSize: it.size, animation: `confettiFall ${it.dur}s ${it.delay}s ease-in forwards` }}>{it.emoji}</span>
+      ))}
+    </div>
+  );
 }
 
 function EmojiPicker({ value, onChange, compact }) {
@@ -207,22 +294,11 @@ function SupabaseLoginScreen({ onAdmin }) {
         </div>
 
         {mode === "signup" && (
-          <>
-            <input
-              type="text" placeholder="El teu nom o mote" value={name}
-              onChange={e => setName(e.target.value)} maxLength={20}
-              style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", color: C.txt, fontSize: 15, marginBottom: 10, fontFamily: "Inter, sans-serif", outline: "none" }}
-            />
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 10, color: C.muted, fontFamily: "var(--pff2)", letterSpacing: 1.5, marginBottom: 6, fontWeight: 600 }}>EMOJI</div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(8, 1fr)", gap: 4 }}>
-                {EMOJI_OPTIONS.map(e => (
-                  <button key={e} onClick={() => setEmoji(e)}
-                    style={{ fontSize: 18, padding: 6, background: emoji === e ? C.gold : C.bg, border: `1px solid ${emoji === e ? C.gold : C.border}`, borderRadius: 6, cursor: "pointer" }}>{e}</button>
-                ))}
-              </div>
-            </div>
-          </>
+          <input
+            type="text" placeholder="El teu nom o mote" value={name}
+            onChange={e => setName(e.target.value)} maxLength={20}
+            style={{ width: "100%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px", color: C.txt, fontSize: 15, marginBottom: 10, fontFamily: "Inter, sans-serif", outline: "none" }}
+          />
         )}
 
         <input
@@ -393,181 +469,19 @@ function GroupPicker({ account, groups, members, adminMode, onJoinGroup, onCreat
   );
 }
 
-// ─────────────────────────── 5b. LOGIN SCREEN (antiga, no usada) ──────────
-function LoginScreen({ accounts, onLogin, onSignup, onAdmin }) {
-  const [mode, setMode] = useState("login");
-  const [name, setName] = useState(""); const [pass, setPass] = useState("");
-  const [pass2, setPass2] = useState(""); const [emoji, setEmoji] = useState("🍺");
-  const [err, setErr] = useState(""); const [taps, setTaps] = useState(0);
 
-  const tapLogo = () => {
-    const n = taps + 1; setTaps(n);
-    if (n >= 5) { onAdmin(); setTaps(0); }
-    setTimeout(() => setTaps(0), 2000);
-  };
-  const submit = () => {
-    setErr("");
-    if (!name.trim()) return setErr("Posa't un mote");
-    if (pass.length < 3) return setErr("Contrasenya mínim 3 caràcters");
-    if (mode === "signup" && pass !== pass2) return setErr("Les contrasenyes no coincideixen");
-    if (mode === "login") onLogin({ name: name.trim(), pass }, setErr);
-    else onSignup({ name: name.trim(), pass, emoji }, setErr);
-  };
-
-  return (
-    <div style={{ minHeight: "100vh", background: `radial-gradient(circle at top, #1a1200 0%, ${C.bg} 60%)`, display: "flex", flexDirection: "column", alignItems: "center", padding: "40px 20px 30px" }}>
-      <div onClick={tapLogo} style={{ textAlign: "center", marginBottom: 28, cursor: "default", userSelect: "none" }}>
-        <div style={{ fontSize: 64, marginBottom: 4, animation: "foam 2s ease-in-out infinite" }}>🍺</div>
-        <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 36, color: C.gold, letterSpacing: 2, lineHeight: 1, textShadow: "0 2px 12px rgba(245,184,0,0.3)" }}>BIRRAPORRA FC</div>
-        <div style={{ color: C.muted, fontSize: 12, marginTop: 6, letterSpacing: 1 }}>La porra dels teus colegues</div>
-      </div>
-      <div style={{ width: "100%", maxWidth: 360, background: C.card, borderRadius: 20, padding: 24, border: `1px solid ${C.border}` }}>
-        <div style={{ textAlign: "center", marginBottom: 18 }}>
-          <div style={{ fontFamily: "var(--pff)", fontWeight: 800, fontSize: 24, color: C.txt, letterSpacing: 1 }}>{mode === "login" ? "ENTRA" : "FES-TE COMPTE"}</div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Pas 1 de 2 · El teu compte</div>
-        </div>
-        <label style={sty.label}>EL TEU MOTE</label>
-        <input placeholder="Ex: Marçal" value={name} onChange={e => setName(e.target.value)} style={{ ...sty.input, marginBottom: 12 }} />
-        <label style={sty.label}>CONTRASENYA</label>
-        <input type="password" placeholder="••••••" value={pass} onChange={e => setPass(e.target.value)} onKeyDown={e => mode === "login" && e.key === "Enter" && submit()} style={{ ...sty.input, marginBottom: mode === "signup" ? 12 : 14 }} />
-        {mode === "signup" && (
-          <>
-            <label style={sty.label}>REPETEIX CONTRASENYA</label>
-            <input type="password" placeholder="••••••" value={pass2} onChange={e => setPass2(e.target.value)} onKeyDown={e => e.key === "Enter" && submit()} style={{ ...sty.input, marginBottom: 14 }} />
-            <label style={sty.label}>TRIA EL TEU EMOJI</label>
-            <div style={{ background: C.card2, padding: 10, borderRadius: 10, marginBottom: 14 }}>
-              <EmojiPicker value={emoji} onChange={setEmoji} compact />
-            </div>
-          </>
-        )}
-        {err && <p style={{ color: C.red, fontSize: 12, marginBottom: 10, textAlign: "center" }}>⚠ {err}</p>}
-        <button onClick={submit} style={{ ...sty.btnPrimary, width: "100%", marginBottom: 12 }}>{mode === "login" ? "ENTRA 🍺" : "CREA COMPTE 🍺"}</button>
-        <div style={{ textAlign: "center", fontSize: 13, color: C.muted }}>
-          {mode === "login" ? "No tens compte?" : "Ja en tens un?"}
-          <button onClick={() => { setMode(mode === "login" ? "signup" : "login"); setErr(""); }} style={{ background: "none", border: "none", color: C.gold, fontWeight: 700, marginLeft: 6, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
-            {mode === "login" ? "Crea'n un" : "Entra"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────── 6. GROUP SCREEN ──────────────────────────────
-function GroupScreen({ account, groups, members, onJoin, onCreate, onLogout }) {
-  const [mode, setMode] = useState("pick");
-  const [selGroup, setSelGroup] = useState("");
-  const [groupPass, setGroupPass] = useState("");
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupPass, setNewGroupPass] = useState("");
-  const [err, setErr] = useState("");
-
-  const myGroups = members.filter(m => m.accountId === account.id);
-  const myGroupIds = new Set(myGroups.map(m => m.groupId));
-
-  const submit = () => {
-    setErr("");
-    if (mode === "pick") {
-      if (!selGroup) return setErr("Tria un grup");
-      if (myGroupIds.has(selGroup)) { onJoin({ groupId: selGroup, alreadyMember: true }); return; }
-      if (!groupPass) return setErr("Posa la contrasenya del grup");
-      onJoin({ groupId: selGroup, groupPass }, setErr);
-    } else {
-      if (!newGroupName.trim()) return setErr("Nom del grup");
-      if (newGroupPass.length < 3) return setErr("Contrasenya mínim 3 caràcters");
-      onCreate({ name: newGroupName.trim(), pass: newGroupPass }, setErr);
-    }
-  };
-
-  const tabBtn = (val, options, set) => (
-    <div style={{ display: "flex", gap: 4, marginBottom: 18, background: C.card2, padding: 4, borderRadius: 10 }}>
-      {options.map(([k, l]) => (
-        <button key={k} onClick={() => { set(k); setErr(""); }} style={{ flex: 1, padding: "10px 4px", borderRadius: 8, border: "none", background: val === k ? C.gold : "transparent", color: val === k ? "#0c0900" : C.muted, fontFamily: "var(--pff)", fontWeight: 800, fontSize: 13, letterSpacing: 1, cursor: "pointer" }}>{l}</button>
-      ))}
-    </div>
-  );
-
-  const isAlreadyMember = mode === "pick" && selGroup && myGroupIds.has(selGroup);
-
-  return (
-    <div style={{ minHeight: "100vh", background: `radial-gradient(circle at top, #1a1200 0%, ${C.bg} 60%)`, display: "flex", flexDirection: "column", alignItems: "center", padding: "30px 20px" }}>
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
-        <div style={{ fontSize: 48, marginBottom: 4 }}>{account.emoji || "🍺"}</div>
-        <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 26, color: C.gold, letterSpacing: 2, lineHeight: 1 }}>HOLA, {account.name.toUpperCase()}!</div>
-        <div style={{ color: C.muted, fontSize: 12, marginTop: 6 }}>Pas 2 de 2 · Tria el grup</div>
-      </div>
-      {myGroups.length > 0 && (
-        <div style={{ width: "100%", maxWidth: 360, marginBottom: 18 }}>
-          <div style={{ ...sty.label, marginBottom: 8, paddingLeft: 4 }}>ELS TEUS GRUPS</div>
-          {myGroups.map(m => {
-            const g = groups.find(g => g.id === m.groupId);
-            if (!g) return null;
-            return (
-              <button key={g.id} onClick={() => onJoin({ groupId: g.id, alreadyMember: true })} style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 16px", marginBottom: 6, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", color: C.txt }}>
-                <div style={{ textAlign: "left" }}>
-                  <div style={{ fontFamily: "var(--pff)", fontWeight: 800, fontSize: 16, color: C.gold }}>{g.name}</div>
-                  <div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>{m.birras}🍺 · {fmtEUR(g.bote_EUR)} pot</div>
-                </div>
-                <span style={{ fontSize: 18, color: C.muted }}>→</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-      <div style={{ width: "100%", maxWidth: 360, background: C.card, borderRadius: 20, padding: 24, border: `1px solid ${C.border}` }}>
-        <div style={{ ...sty.label, textAlign: "center", marginBottom: 14 }}>{myGroups.length > 0 ? "ENTRA A UN ALTRE O CREA'N UN" : "TRIA EL TEU GRUP"}</div>
-        {tabBtn(mode, [["pick", "🤝 ENTRAR"], ["create", "✨ CREAR"]], setMode)}
-        {mode === "pick" ? (
-          <>
-            <select value={selGroup} onChange={e => setSelGroup(e.target.value)} style={{ ...sty.input, marginBottom: 12 }}>
-              <option value="">— tria grup —</option>
-              {groups.map(g => <option key={g.id} value={g.id}>{g.name}{myGroupIds.has(g.id) ? " ✓" : ""}</option>)}
-            </select>
-            {!isAlreadyMember && selGroup && (
-              <input type="password" placeholder="Contrasenya del grup" value={groupPass} onChange={e => setGroupPass(e.target.value)} style={{ ...sty.input, marginBottom: 14 }} />
-            )}
-            {isAlreadyMember && (
-              <div style={{ background: "#0d2200", border: `1px solid ${C.green}`, borderRadius: 8, padding: "10px 14px", fontSize: 13, color: C.green, marginBottom: 14, textAlign: "center" }}>
-                ✓ Ja ets membre, entres directe
-              </div>
-            )}
-            {groups.length === 0 && <p style={{ color: C.muted, fontSize: 12, textAlign: "center", marginBottom: 14 }}>Encara no hi ha cap grup. Crea el primer ✨</p>}
-          </>
-        ) : (
-          <>
-            <input placeholder="Nom del grup (ex: Els Cunyats FC)" value={newGroupName} onChange={e => setNewGroupName(e.target.value)} style={{ ...sty.input, marginBottom: 10 }} />
-            <input type="password" placeholder="Contrasenya del grup" value={newGroupPass} onChange={e => setNewGroupPass(e.target.value)} style={{ ...sty.input, marginBottom: 14 }} />
-          </>
-        )}
-        {err && <p style={{ color: C.red, fontSize: 12, marginBottom: 10, textAlign: "center" }}>⚠ {err}</p>}
-        <button onClick={submit} disabled={mode === "pick" && !selGroup} style={{ ...sty.btnPrimary, width: "100%", opacity: (mode === "pick" && !selGroup) ? 0.4 : 1 }}>
-          {mode === "pick" ? (isAlreadyMember ? "ENTRA 🍺" : "ENTRO! 🤝") : "CREA I ENTRA ✨"}
-        </button>
-        <p style={{ color: C.muted, fontSize: 10, textAlign: "center", marginTop: 12, lineHeight: 1.6 }}>Quan entres, l'admin et cobrarà {fmtEUR(CFG.ENTRY_EUR)} i tindràs {CFG.START_BIRRAS}🍺</p>
-      </div>
-      <button onClick={onLogout} style={{ marginTop: 20, background: "none", border: "none", color: C.muted, fontSize: 13, cursor: "pointer", textDecoration: "underline" }}>Tancar sessió</button>
-    </div>
-  );
-}
 
 // ─────────────────────────── 7. RULES SCREEN ──────────────────────────────
 function RulesScreen({ onClose, firstTime }) {
   const rules = [
-    ["🍺", `Entrada ${fmtEUR(CFG.ENTRY_EUR)}`, `Comences amb ${CFG.START_BIRRAS} birres. Cada 🍺 val ${(CFG.BIRRA_EUR * 100).toFixed(0)} cèntims.`],
-    ["🎯", "Aposta a l'1X2", "Apostes Local, Empat o Visitant amb una quota fixa. Si l'encertes: birres × quota."],
-    ["⭐", "Marcador exacte BONUS", `Quan apostes pots escriure el marcador exacte (gratis). Si encertes guanyador I marcador: guanys ×${CFG.EXACT_BONUS}!`],
-    ["🔒", "Tancament automàtic", "Quan comença el partit, la teva porra es tanca i ja no es pot tocar."],
-    ["🏆", "Jackpot Clàssic", `Pagues ${CFG.CLASICO_ENTRY}🍺 i prediu marcadors exactes de 2 partits. Qui els encerta tots dos s'emporta TOT el pot.`],
-    ["🪙", "Cara o Creu", `Un cop per setmana! ${CFG.COIN_ENTRY}🍺 entrada, dobles fins ${CFG.COIN_MAX_DOUBLES} cops (fins ${CFG.COIN_ENTRY * Math.pow(2, CFG.COIN_MAX_DOUBLES + 1)}🍺). Si falles, perds tot.`],
-    ["⚡", "Súper Bonus", `L'admin marca un partit especial. Quotes ×${CFG.SUPER_MULT}.`],
-    ["🌍", "Combo Europa", `Gratis! L'admin marca 5 partidots top. Tu prediu 1X2 sense apostar res. 3 encerts = +${CFG.EUROPA_BONUSES[3]}🍺 · 4 = +${CFG.EUROPA_BONUSES[4]}🍺 · 5 = +${CFG.EUROPA_BONUSES[5]}🍺.`],
-    ["🃏", "Joker setmanal", `${CFG.JOKER_PER_WEEK}× per setmana actives el Joker en una porra: guanys ×2.`],
-    ["🔥", "Ratxa", `${CFG.RACHA_N} encerts seguits → +${CFG.RACHA_BONUS}🍺 gratis.`],
-    ["🔮", "Profeta", "Si claves un marcador exacte, surt un missatge automàtic al xat presumint."],
-    ["📅", "Resum setmanal", "Al menú Més pots veure el resum de la setmana i compartir-lo al WhatsApp del grup."],
-    ["📊", "Estadístiques", "Pestanya amb dades divertides del grup."],
-    ["🏅", "Premi mensual EN BIRRES", `Pot → birres (${fmtEUR(CFG.BEER_EUR)}/birra). 🥇 40% · 🥈 30% · 🥉 20% · 4️⃣ 10%.`],
-    ["💬", "Xat de grup", "Pica't amb els col·legues abans i després dels partits."],
+    ["🍺", `Comences amb ${CFG.START_BIRRAS} birres`, `Cada birra val ${(CFG.BIRRA_EUR * 100).toFixed(0)} cèntims. L'admin et pot recarregar.`],
+    ["🎯", "Aposta a l'1X2", "A cada partit tries Local, Empat o Visitant amb una quota. Si l'encertes: birres × quota."],
+    ["⭐", "Marcador exacte BONUS", `En apostar pots escriure també el marcador exacte (gratis). Si encertes guanyador I marcador: guanys ×${CFG.EXACT_BONUS}!`],
+    ["🔒", "Tancament automàtic", "Quan comença el partit la teva porra es tanca i ja no es pot tocar. Aposta abans!"],
+    ["🇪🇸", "Jackpot Selecció Espanyola", `Als partits d'Espanya pots apostar birres + predir el resultat exacte. Qui el clava s'emporta TOT el pot. Si ningú no encerta, s'acumula pel pròxim partit.`],
+    ["🪙", "Cara o Creu", `Un cop per setmana! ${CFG.COIN_ENTRY}🍺 d'entrada i dobles fins a ${CFG.COIN_MAX_DOUBLES} cops. Si falles, ho perds tot.`],
+    ["🏅", "Insígnies", "Desbloqueja medalles: primera victòria, endeví, ratxa de 3 i 5, líder del ranking i més."],
+    ["🏆", "Premi final EN BIRRES", `El pot del grup es reparteix: 🥇 40% · 🥈 30% · 🥉 20% · 4t 10%.`],
   ];
   return (
     <div style={{ position: "fixed", inset: 0, background: C.bg, overflowY: "auto", zIndex: 200 }}>
@@ -591,12 +505,40 @@ function RulesScreen({ onClose, firstTime }) {
   );
 }
 
+// Badge de selecció amb codi de 3 lletres (sempre visible) + emoji si funciona
+function FlagBadge({ name, size = 12 }) {
+  const code = teamCode(name);
+  if (!code) return null;
+  return (
+    <span style={{ display: "inline-block", background: C.card2, color: C.gold, fontFamily: "var(--pff2)", fontWeight: 700, fontSize: size, letterSpacing: 1, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.border}` }}>{code}</span>
+  );
+}
+
+// ─────────────────────────── PODIUM SPOT ──────────────────────────────────
+function PodiumSpot({ user, rank, isMe, height }) {
+  const medals = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  const colors = { 1: C.gold, 2: "#c0c0c0", 3: "#cd7f32" };
+  const col = colors[rank];
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, maxWidth: 110 }}>
+      {rank === 1 && <div style={{ fontSize: 22, marginBottom: 2, animation: "foam 2s ease-in-out infinite" }}>👑</div>}
+      <div style={{ width: rank === 1 ? 54 : 44, height: rank === 1 ? 54 : 44, borderRadius: "50%", background: isMe ? C.gold : C.card2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: rank === 1 ? 28 : 22, border: `2px solid ${col}`, marginBottom: 4 }}>{user.emoji}</div>
+      <div style={{ fontFamily: "var(--pff2)", fontSize: 11, fontWeight: 700, color: C.txt, textAlign: "center", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: 0.5 }}>{user.name}{isMe ? " 👈" : ""}</div>
+      <div style={{ fontFamily: "var(--pff)", fontSize: rank === 1 ? 22 : 18, color: col, lineHeight: 1.1 }}>{user.birras}🍺</div>
+      <div style={{ width: "100%", height, background: `linear-gradient(180deg, ${col}33, ${C.card})`, border: `1px solid ${col}`, borderBottom: "none", borderRadius: "8px 8px 0 0", marginTop: 6, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 8 }}>
+        <span style={{ fontSize: 26 }}>{medals[rank]}</span>
+      </div>
+    </div>
+  );
+}
+
 // ─────────────────────────── 8. MATCH CARD ────────────────────────────────
 function MatchCard({ match, userBet, onBet, member }) {
   const done = match.status === "finished";
   const started = matchStarted(match) && !done;
   const cardBg = match.spain ? "#2a0a14" : C.card;
   const borderColor = match.spain ? C.red : C.border;
+  const cd = (!done && !started) ? countdown(match.date) : null;
 
   return (
     <div style={{ background: cardBg, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${borderColor}`, position: "relative", overflow: "hidden" }}>
@@ -609,13 +551,24 @@ function MatchCard({ match, userBet, onBet, member }) {
         </div>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 22, color: C.txt, textAlign: "right", letterSpacing: 1 }}>{match.home}</span>
+        <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 22, color: C.txt, textAlign: "right", letterSpacing: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+          <span>{match.home}</span><FlagBadge name={match.home} />
+        </span>
         <div style={{ minWidth: 70, textAlign: "center" }}>
           {match.result ? <span style={{ fontFamily: "var(--pff)", fontSize: 28, color: C.gold }}>{match.result.home}–{match.result.away}</span> : <span style={{ fontFamily: "var(--pff2)", fontSize: 14, color: C.muted, fontWeight: 700 }}>VS</span>}
         </div>
-        <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 22, color: C.txt, textAlign: "left", letterSpacing: 1 }}>{match.away}</span>
+        <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 22, color: C.txt, textAlign: "left", letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>
+          <FlagBadge name={match.away} /><span>{match.away}</span>
+        </span>
       </div>
-      {match.date && <div style={{ fontSize: 11, color: C.muted, textAlign: "center", marginBottom: 10 }}>{fmtDate(match.date)}</div>}
+      {match.date && <div style={{ fontSize: 11, color: C.muted, textAlign: "center", marginBottom: cd ? 4 : 10 }}>{fmtDate(match.date)}</div>}
+      {cd && (
+        <div style={{ textAlign: "center", marginBottom: 10 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: cd.urgent ? "#3a0814" : C.card2, color: cd.urgent ? C.red : C.muted, fontFamily: "var(--pff2)", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "3px 10px", borderRadius: 12, border: cd.urgent ? `1px solid ${C.red}` : "none", animation: cd.urgent ? "pulse 2s ease-in-out infinite" : "none" }}>
+            ⏱ TANCA EN {cd.text}
+          </span>
+        </div>
+      )}
       {!done && !started && (
         <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
           {[["H", match.home], ["D", "Empat"], ["A", match.away]].map(([k, lbl]) => (
@@ -746,7 +699,6 @@ function BetModal({ match, member, existing, jokerAvailable, onSubmit, onClose }
   );
 }
 
-// ─────────────────────────── 10. CLÀSSIC MODAL ────────────────────────────
 // ─────────────────── 10. JACKPOT ESPANYA MODAL ────────────────────────────
 // Cada partit d'Espanya té el seu pot. Els jugadors aposten birres + prediuen
 // resultat exacte. Qui l'encerta s'emporta TOT (incl. acumulat anterior). Si
@@ -958,104 +910,7 @@ function EmojiChangeModal({ current, onSave, onClose }) {
   );
 }
 
-// ─────────────────────────── EUROPA MODAL ─────────────────────────────────
-function EuropaModal({ matches, member, existing, onSubmit, onClose }) {
-  const [pred, setPred] = useState(() => {
-    const init = {};
-    matches.forEach(m => { init[m.id] = existing?.predictions?.[m.id] || ""; });
-    return init;
-  });
-  const [err, setErr] = useState("");
-  const submit = () => {
-    for (const m of matches) {
-      if (!pred[m.id]) return setErr(`Falta predicció a ${m.home} vs ${m.away}`);
-    }
-    onSubmit({ predictions: pred });
-  };
-  return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", display: "flex", alignItems: "flex-end", zIndex: 100 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#0a0518", borderRadius: "20px 20px 0 0", padding: 22, width: "100%", maxWidth: 480, margin: "0 auto", maxHeight: "94vh", overflowY: "auto", border: `1px solid ${C.purple}` }}>
-        <div style={{ width: 40, height: 4, background: C.border, borderRadius: 2, margin: "0 auto 14px" }} />
-        <div style={{ textAlign: "center", marginBottom: 14 }}>
-          <div style={{ fontSize: 36, marginBottom: 4 }}>🌍</div>
-          <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 22, color: C.purple, letterSpacing: 2 }}>COMBO EUROPA</div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>Gratis · Tria 1X2 dels {matches.length} partits</div>
-          <div style={{ fontSize: 11, color: C.amber, marginTop: 4 }}>3 = +{CFG.EUROPA_BONUSES[3]}🍺 · 4 = +{CFG.EUROPA_BONUSES[4]}🍺 · 5 = +{CFG.EUROPA_BONUSES[5]}🍺</div>
-        </div>
-        {matches.map(m => (
-          <div key={m.id} style={{ background: C.card, borderRadius: 12, padding: 12, marginBottom: 10, border: `1px solid ${C.border}` }}>
-            <div style={{ fontSize: 10, color: C.muted, fontFamily: "var(--pff)", letterSpacing: 1, marginBottom: 4 }}>{m.league}{m.date ? ` · ${fmtDate(m.date)}` : ""}</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ flex: 1, fontFamily: "var(--pff)", fontWeight: 800, fontSize: 16, color: C.txt, textAlign: "right" }}>{m.home}</span>
-              <span style={{ color: C.muted, fontSize: 12 }}>VS</span>
-              <span style={{ flex: 1, fontFamily: "var(--pff)", fontWeight: 800, fontSize: 16, color: C.txt, textAlign: "left" }}>{m.away}</span>
-            </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              {[["H", "1"], ["D", "X"], ["A", "2"]].map(([k, lbl]) => {
-                const sel = pred[m.id] === k;
-                return (
-                  <button key={k} onClick={() => setPred(p => ({ ...p, [m.id]: k }))} style={{ flex: 1, padding: "10px 0", borderRadius: 8, border: `2px solid ${sel ? C.purple : C.border}`, background: sel ? "#2a0a4e" : C.card2, color: sel ? C.purple : C.muted, fontFamily: "var(--pff)", fontWeight: 900, fontSize: 18, cursor: "pointer" }}>{lbl}</button>
-                );
-              })}
-            </div>
-            {m.result && (
-              <div style={{ marginTop: 6, fontSize: 11, color: C.muted, textAlign: "center" }}>
-                Resultat: <span style={{ color: C.gold, fontWeight: 700 }}>{m.result.home}–{m.result.away}</span>
-                {pred[m.id] && (() => {
-                  const wo = getOutcome(m.result.home, m.result.away);
-                  const ok = pred[m.id] === wo;
-                  return <span style={{ color: ok ? C.green : C.red, marginLeft: 6, fontWeight: 700 }}>{ok ? "✓" : "✗"}</span>;
-                })()}
-              </div>
-            )}
-          </div>
-        ))}
-        {err && <p style={{ color: C.red, fontSize: 12, textAlign: "center", marginBottom: 8 }}>⚠ {err}</p>}
-        <div style={{ display: "flex", gap: 10 }}>
-          <button onClick={onClose} style={{ ...sty.btnGhost, flex: 1 }}>CANCEL·LAR</button>
-          <button onClick={submit} style={{ ...sty.btnPrimary, flex: 2, background: C.purple, color: "#fff" }}>{existing ? "DESAR" : "ENVIAR PREDICCIÓ"} 🌍</button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
-// ─────────────────────────── WEEKLY SUMMARY MODAL ─────────────────────────
-function WeeklySummaryModal({ data, onClose }) {
-  const { currentGroup, leaderboard, weekTopGain, myWeekNet, myWeekBets, myWeekHits, shareText } = data;
-  return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.88)", display: "flex", alignItems: "flex-end", zIndex: 100 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#050d18", borderRadius: "20px 20px 0 0", padding: 22, width: "100%", maxWidth: 480, margin: "0 auto", maxHeight: "94vh", overflowY: "auto", border: `1px solid ${C.blue}` }}>
-        <div style={{ width: 40, height: 4, background: C.border, borderRadius: 2, margin: "0 auto 14px" }} />
-        <div style={{ textAlign: "center", marginBottom: 16 }}>
-          <div style={{ fontSize: 40, marginBottom: 4 }}>📅</div>
-          <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 22, color: C.blue, letterSpacing: 2 }}>RESUM SETMANAL</div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 4 }}>Què va passar la última setmana</div>
-        </div>
-        <div style={{ background: C.card, borderRadius: 10, padding: 14, marginBottom: 12, border: `1px solid ${C.border}` }}>
-          <div style={{ fontSize: 11, color: C.muted, fontFamily: "var(--pff)", letterSpacing: 1, marginBottom: 6 }}>EL TEU BALANÇ</div>
-          <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 32, color: myWeekNet >= 0 ? C.green : C.red }}>{myWeekNet >= 0 ? "+" : ""}{myWeekNet}🍺</div>
-          <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{myWeekBets.length} jugades · {myWeekHits} encerts</div>
-        </div>
-        {weekTopGain.length > 0 && weekTopGain[0].weekNet > 0 && (
-          <div style={{ background: "linear-gradient(135deg,#2a1d00,#1a1200)", border: `1px solid ${C.gold}`, borderRadius: 10, padding: 14, marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: C.amber, fontFamily: "var(--pff)", letterSpacing: 1, marginBottom: 6 }}>👑 TOP DE LA SETMANA</div>
-            {weekTopGain.slice(0, 3).map((u, i) => (
-              <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 16 }}>{["🥇", "🥈", "🥉"][i]}</span>
-                <span style={{ fontSize: 16 }}>{u.emoji}</span>
-                <span style={{ flex: 1, color: C.txt, fontSize: 14 }}>{u.name}</span>
-                <span style={{ color: u.weekNet >= 0 ? C.green : C.red, fontWeight: 700, fontFamily: "var(--pff)" }}>{u.weekNet >= 0 ? "+" : ""}{u.weekNet}🍺</span>
-              </div>
-            ))}
-          </div>
-        )}
-        <WAButton text={shareText} label="📲 Compartir resum al WhatsApp" />
-        <button onClick={onClose} style={{ ...sty.btnGhost, width: "100%", marginTop: 10 }}>TANCAR</button>
-      </div>
-    </div>
-  );
-}
 
 function AdminPassModal({ onSubmit, onClose }) {
   const [pass, setPass] = useState("");
@@ -1097,6 +952,20 @@ function AdminPanel({ data, handlers, onClose }) {
     await handlers.addMatch({ ...nm, cuotas, groupId: selGroupId });
     setNm({ home: "", away: "", date: "", league: nm.league, cuotas: { H: "1.50", D: "3.00", A: "5.00" }, spain: false });
   };
+  const prefillSpain = async () => {
+    if (!selGroupId) { alert("Selecciona un grup primer"); return; }
+    if (!confirm("Afegir els 3 partits d'Espanya de la fase de grups?")) return;
+    // Dates oficials Mundial 2026 (horari peninsular aproximat)
+    const spainMatches = [
+      { home: "Espanya", away: "Cap Verd", date: "2026-06-15T18:00", league: "Fase de Grup", cuotas: { H: 1.25, D: 5.5, A: 11.0 } },
+      { home: "Espanya", away: "Aràbia Saudí", date: "2026-06-21T18:00", league: "Fase de Grup", cuotas: { H: 1.35, D: 4.5, A: 8.0 } },
+      { home: "Espanya", away: "Uruguai", date: "2026-06-26T03:00", league: "Fase de Grup", cuotas: { H: 1.9, D: 3.3, A: 3.8 } },
+    ];
+    for (const m of spainMatches) {
+      await handlers.addMatch({ ...m, spain: true, groupId: selGroupId });
+    }
+    alert("✓ 3 partits d'Espanya afegits!");
+  };
   const submitResult = async (id) => {
     const r = results[id]; if (!r || r.home === "" || r.away === "") return;
     await handlers.setResult(id, { home: parseInt(r.home), away: parseInt(r.away) });
@@ -1131,8 +1000,20 @@ function AdminPanel({ data, handlers, onClose }) {
 
         {tab === "matches" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <input placeholder="Equip local" value={nm.home} onChange={e => setNm(p => ({ ...p, home: e.target.value }))} style={sty.input} />
-            <input placeholder="Equip visitant" value={nm.away} onChange={e => setNm(p => ({ ...p, away: e.target.value }))} style={sty.input} />
+            <div>
+              <div style={{ fontSize: 10, color: C.muted, fontFamily: "var(--pff2)", letterSpacing: 1.5, marginBottom: 4, fontWeight: 600 }}>EQUIP LOCAL</div>
+              <select value={nm.home} onChange={e => setNm(p => ({ ...p, home: e.target.value }))} style={sty.input}>
+                <option value="">— Selecciona —</option>
+                {NATION_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={{ fontSize: 10, color: C.muted, fontFamily: "var(--pff2)", letterSpacing: 1.5, marginBottom: 4, fontWeight: 600 }}>EQUIP VISITANT</div>
+              <select value={nm.away} onChange={e => setNm(p => ({ ...p, away: e.target.value }))} style={sty.input}>
+                <option value="">— Selecciona —</option>
+                {NATION_NAMES.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
             <select value={nm.league} onChange={e => setNm(p => ({ ...p, league: e.target.value }))} style={sty.input}>
               {LEAGUES.map(l => <option key={l} value={l}>{l}</option>)}
             </select>
@@ -1153,6 +1034,14 @@ function AdminPanel({ data, handlers, onClose }) {
               <div><div style={{ fontFamily: "var(--pff)", fontSize: 16, color: C.red, letterSpacing: 1 }}>🇪🇸 PARTIT D'ESPANYA</div><div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Compta pel Jackpot Selecció Espanyola</div></div>
             </label>
             <button onClick={submitMatch} style={sty.btnPrimary}>➕ AFEGIR PARTIT</button>
+
+            <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 8, paddingTop: 14 }}>
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, marginBottom: 8, fontWeight: 600 }}>SNACK RÀPID</div>
+              <button onClick={prefillSpain} style={{ ...sty.btnGhost, width: "100%", background: "#2a0a14", color: C.red, border: `1px solid ${C.red}` }}>
+                🇪🇸 PRECARREGAR PARTITS D'ESPANYA (FASE DE GRUPS)
+              </button>
+              <div style={{ fontSize: 10, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>Afegeix els 3 partits: Espanya–Cap Verd (15/6), Espanya–Aràbia Saudí (21/6) i Espanya–Uruguai (26/6). Marcats com a partit d'Espanya.</div>
+            </div>
           </div>
         )}
 
@@ -1254,13 +1143,14 @@ export default function App() {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [showEuropa, setShowEuropa] = useState(false);
-  const [showWeeklyModal, setShowWeeklyModal] = useState(false);
   const [showEmojiChange, setShowEmojiChange] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [toast, setToast] = useState(null);
   const [chatInput, setChatInput] = useState("");
   const [lastSeen, setLastSeen] = useState({ matches: 0, jackpot: 0, ranking: 0, chat: 0, mine: 0, stats: 0 });
   const [tick, setTick] = useState(0);
+  const [confetti, setConfetti] = useState(false);
+  const seenWinsRef = useRef(null);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -1268,7 +1158,7 @@ export default function App() {
     link.href = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap";
     document.head.appendChild(link);
     const s = document.createElement("style");
-    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#c8102e 0%,#c8102e 33%,#f5c518 33%,#f5c518 66%,#164d24 66%,#164d24 100%);height:3px;width:100%}`;
+    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(380px) rotate(720deg);opacity:0}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#c8102e 0%,#c8102e 33%,#f5c518 33%,#f5c518 66%,#164d24 66%,#164d24 100%);height:3px;width:100%}`;
     document.head.appendChild(s);
     const loadShared = async () => {
       // Carrega NOMÉS les dades compartides (matches, bets, etc.)
@@ -1289,6 +1179,24 @@ export default function App() {
   }, []);
 
   useEffect(() => { setLastSeen(prev => ({ ...prev, [tab]: Date.now() })); }, [tab, activeGroupId]);
+
+  // Detectar guanys nous i disparar confeti
+  useEffect(() => {
+    if (!account || !activeGroupId) { seenWinsRef.current = null; return; }
+    const mem = members.find(m => m.accountId === account.id && m.groupId === activeGroupId);
+    if (!mem) return;
+    const wins = bets.filter(b => b.memberId === mem.id && b.settled && b.payout > 0).length;
+    if (seenWinsRef.current === null) {
+      // Primera càrrega: guardem el nombre actual sense celebrar
+      seenWinsRef.current = wins;
+      return;
+    }
+    if (wins > seenWinsRef.current) {
+      seenWinsRef.current = wins;
+      setConfetti(true);
+      setTimeout(() => setConfetti(false), 3000);
+    }
+  }, [bets, members, account, activeGroupId]);
   useEffect(() => { if (tab === "chat" && chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [tab, chats, activeGroupId]);
 
   // ── SUPABASE AUTH: escoltar sessió i sincronitzar amb 'account' ───────────
@@ -1300,8 +1208,10 @@ export default function App() {
       if (cancelled) return;
       if (!user) { setAccount(null); setActiveGroupId(null); return; }
 
-      // Refresquem comptes per saber si ja existeix
-      const latestAccounts = await dbGet(KEYS.accounts);
+      // Carreguem comptes, grups i membres de cop per evitar retards
+      const [latestAccounts, latestGroups, latestMembers] = await Promise.all([
+        dbGet(KEYS.accounts), dbGet(KEYS.groups), dbGet(KEYS.members),
+      ]);
       let accs = latestAccounts || [];
 
       // Busquem el compte per authId (ID de Supabase)
@@ -1323,6 +1233,8 @@ export default function App() {
 
       if (cancelled) return;
       setAccounts(accs);
+      if (latestGroups) setGroups(latestGroups);
+      if (latestMembers) setMembers(latestMembers);
       setAccount(acc);
       // NO setActiveGroupId aquí: que l'usuari triï grup a continuació
     };
@@ -1711,10 +1623,13 @@ export default function App() {
   const groupMembers = currentGroup ? members.filter(m => m.groupId === currentGroup.id) : [];
   const myBets = member ? bets.filter(b => b.memberId === member.id) : [];
   const normalMatches = groupMatches.filter(m => !m.clasico && !m.europa);
-  const openMatches = normalMatches.filter(m => m.status !== "finished").sort((a, b) => new Date(a.date) - new Date(b.date));
+  // Oberts = pots apostar (no començats, no acabats)
+  const bettableMatches = normalMatches.filter(m => m.status !== "finished" && !matchStarted(m)).sort((a, b) => new Date(a.date) - new Date(b.date));
+  // En joc = ja començats però sense resultat
+  const liveMatches = normalMatches.filter(m => m.status !== "finished" && matchStarted(m)).sort((a, b) => new Date(a.date) - new Date(b.date));
   const finishedMatches = normalMatches.filter(m => m.status === "finished").sort((a, b) => new Date(b.date) - new Date(a.date));
-  // Agrupar propers per lliga
-  const openByLeague = openMatches.reduce((acc, m) => { (acc[m.league] = acc[m.league] || []).push(m); return acc; }, {});
+  // Agrupar propers (apostables) per fase
+  const openByLeague = bettableMatches.reduce((acc, m) => { (acc[m.league] = acc[m.league] || []).push(m); return acc; }, {});
   const leaguesOrdered = Object.keys(openByLeague).sort((a, b) => {
     const idxA = LEAGUES.indexOf(a), idxB = LEAGUES.indexOf(b);
     return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
@@ -1759,6 +1674,31 @@ export default function App() {
   }).sort((a, b) => b.birras - a.birras);
   const myRank = member ? leaderboard.findIndex(u => u.id === member.id) + 1 : 0;
   const jokerAvailable = member && member.jokerWeek !== weekKey();
+
+  // ── INSÍGNIES / ASSOLIMENTS ───────────────────────────────────────────────
+  const myBetsSettled = member ? bets.filter(b => b.memberId === member.id && b.settled) : [];
+  const myWins = myBetsSettled.filter(b => b.payout > 0).length;
+  const myExacts = myBetsSettled.filter(b => {
+    if (!b.exactScore) return false;
+    const mt = matches.find(mm => mm.id === b.matchId);
+    return mt?.result && b.exactScore === scoreKey(mt.result.home, mt.result.away);
+  }).length;
+  // Ratxa actual de victòries (ordenades per data)
+  const myBetsByDate = [...myBetsSettled].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+  let curStreak = 0, maxStreak = 0;
+  for (const b of myBetsByDate) { if (b.payout > 0) { curStreak++; maxStreak = Math.max(maxStreak, curStreak); } else curStreak = 0; }
+  const myEspanyaWins = espanyaHistory ? espanyaHistory.filter(([_, info]) => info.winners && info.winners.some(w => w.memberId === member?.id)).length : 0;
+  const badges = [
+    { id: "first", icon: "🎯", name: "Primera victòria", got: myWins >= 1, desc: "Encerta la teva primera porra" },
+    { id: "exact", icon: "🔮", name: "Endeví", got: myExacts >= 1, desc: "Clava un resultat exacte" },
+    { id: "streak3", icon: "🔥", name: "En ratxa", got: maxStreak >= 3, desc: "3 encerts seguits" },
+    { id: "streak5", icon: "⚡", name: "Imparable", got: maxStreak >= 5, desc: "5 encerts seguits" },
+    { id: "rich", icon: "💰", name: "Ric", got: member && member.birras >= 100, desc: "Acumula 100🍺" },
+    { id: "veteran", icon: "🎖️", name: "Veterà", got: myBetsSettled.length >= 10, desc: "Juga 10 porres" },
+    { id: "espanya", icon: "🇪🇸", name: "Patriota", got: myEspanyaWins >= 1, desc: "Guanya el Jackpot d'Espanya" },
+    { id: "leader", icon: "👑", name: "Líder", got: myRank === 1 && leaderboard.length > 1, desc: "Sigues 1r del ranking" },
+  ];
+  const myBadges = badges.filter(b => b.got);
 
   const groupChat = currentGroup ? (chats[currentGroup.id] || []) : [];
   const hasNewChat = groupChat.length > 0 && groupChat[groupChat.length - 1].ts > lastSeen.chat && groupChat[groupChat.length - 1].accountId !== account?.id;
@@ -1831,12 +1771,13 @@ export default function App() {
   };
   const shareLeaderboardText = () => {
     if (!currentGroup) return "";
-    let txt = `🏆 *Classificació BIRRAPORRA FC*\n${currentGroup.name}\n\n`;
+    let txt = `🏆⚽ *BIRRAPORRA MUNDIAL 2026* ⚽🏆\n_${currentGroup.name}_\n\n`;
     leaderboard.forEach((u, i) => {
       const medal = ["🥇", "🥈", "🥉"][i] || `${i + 1}.`;
-      txt += `${medal} ${u.emoji} ${u.name} — ${u.birras}🍺 (${u.netGain >= 0 ? "+" : ""}${u.netGain})\n`;
+      txt += `${medal} ${u.emoji} ${u.name} — *${u.birras}🍺*\n`;
     });
-    txt += `\nPot: ${fmtEUR(currentGroup.bote_EUR)} 🍺`;
+    if (currentGroup.bote_EUR > 0) txt += `\n💰 Pot del grup: ${fmtEUR(currentGroup.bote_EUR)}`;
+    txt += `\n\n_Encara pots remuntar! 💪_`;
     return txt;
   };
   const shareStatsText = () => {
@@ -1954,11 +1895,17 @@ export default function App() {
         {/* ─── PARTITS ─── */}
         {tab === "matches" && (
           <div>
-            <div style={{ background: C.card, borderRadius: 12, padding: "10px 14px", marginBottom: 14, display: "flex", border: `1px solid ${C.border}`, position: "relative", overflow: "hidden" }}>
+            {/* Birres disponibles — protagonista */}
+            <div style={{ background: "linear-gradient(135deg, #2a1d00, #0d0a00)", borderRadius: 16, padding: "18px 16px", marginBottom: 12, border: `2px solid ${member.birras > 0 ? C.gold : C.red}`, position: "relative", overflow: "hidden", textAlign: "center" }}>
               <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.amber, letterSpacing: 3, fontWeight: 600, marginBottom: 2 }}>LES TEVES BIRRES</div>
+              <div style={{ fontFamily: "var(--pff)", fontSize: 64, color: member.birras > 0 ? C.gold : C.red, lineHeight: 1 }}>{member.birras}<span style={{ fontSize: 36 }}>🍺</span></div>
+            </div>
+            {/* Stats secundàries */}
+            <div style={{ background: C.card, borderRadius: 12, padding: "10px 14px", marginBottom: 14, display: "flex", border: `1px solid ${C.border}` }}>
               {headerStat("POSICIÓ", myRank ? `${myRank}r` : "—", C.gold)}
               <div style={{ width: 1, background: C.border }} />
-              {headerStat("BIRRES", `${member.birras}`, member.birras > 0 ? C.gold : C.red)}
+              {headerStat("ENCERTS", `${myBets.filter(b => b.payout > 0).length}`, C.green)}
               <div style={{ width: 1, background: C.border }} />
               {headerStat("PARTITS", `${myBets.length}`, C.muted)}
             </div>
@@ -1978,7 +1925,7 @@ export default function App() {
             )}
 
             {leaguesOrdered.length > 0 && (<>
-              <div style={sty.sectionH}>PROPERS</div>
+              <div style={sty.sectionH}>🟢 POTS APOSTAR</div>
               {leaguesOrdered.map(lg => (
                 <div key={lg} style={{ marginBottom: 18 }}>
                   <div style={{ fontFamily: "var(--pff)", fontWeight: 800, fontSize: 12, color: C.amber, letterSpacing: 2, marginBottom: 8, paddingLeft: 4, display: "flex", alignItems: "center", gap: 8 }}>
@@ -1992,8 +1939,13 @@ export default function App() {
               ))}
             </>)}
 
+            {liveMatches.length > 0 && (<>
+              <div style={{ ...sty.sectionH, color: C.red, marginTop: 18 }}>🔴 EN JOC</div>
+              {liveMatches.map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={null} member={member} />)}
+            </>)}
+
             {finishedMatches.length > 0 && (<>
-              <div style={{ ...sty.sectionH, color: C.muted, marginTop: 18 }}>FINALITZATS</div>
+              <div style={{ ...sty.sectionH, color: C.muted, marginTop: 18 }}>✓ FINALITZATS</div>
               {finishedMatches.slice(0, 10).map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={null} member={member} />)}
             </>)}
           </div>
@@ -2108,23 +2060,43 @@ export default function App() {
         {tab === "ranking" && (
           <div>
             {currentGroup && (
-              <div style={{ background: "linear-gradient(135deg,#3a2800 0%, #1a1200 100%)", borderRadius: 14, padding: 14, marginBottom: 14, border: `1px solid ${C.amber}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: "linear-gradient(135deg,#3a2800 0%, #1a1200 100%)", borderRadius: 14, padding: 14, marginBottom: 16, border: `1px solid ${C.amber}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontSize: 10, color: C.amber, fontFamily: "var(--pff)", letterSpacing: 2, marginBottom: 2 }}>POT DEL GRUP</div>
                   <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 26, color: C.gold, lineHeight: 1 }}>{fmtEUR(currentGroup.bote_EUR)}</div>
-                  <div style={{ fontSize: 11, color: C.amber, marginTop: 2 }}>🍺 {eurToBeers(currentGroup.bote_EUR)} birres</div>
+                  <div style={{ fontSize: 11, color: C.amber, marginTop: 2 }}>👥 {leaderboard.length} {leaderboard.length === 1 ? "jugador" : "jugadors"}{currentGroup.joinCode && adminMode ? ` · codi ${currentGroup.joinCode}` : ""}</div>
                 </div>
                 <div style={{ fontSize: 36 }}>🏆</div>
               </div>
             )}
+
+            {/* PODI TOP 3 */}
+            {leaderboard.length >= 1 && (
+              <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", gap: 8, marginBottom: 20, padding: "0 4px" }}>
+                {/* 2n lloc */}
+                {leaderboard[1] && (
+                  <PodiumSpot user={leaderboard[1]} rank={2} isMe={leaderboard[1].id === member.id} height={90} />
+                )}
+                {/* 1r lloc */}
+                {leaderboard[0] && (
+                  <PodiumSpot user={leaderboard[0]} rank={1} isMe={leaderboard[0].id === member.id} height={120} />
+                )}
+                {/* 3r lloc */}
+                {leaderboard[2] && (
+                  <PodiumSpot user={leaderboard[2]} rank={3} isMe={leaderboard[2].id === member.id} height={70} />
+                )}
+              </div>
+            )}
+
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <div style={sty.sectionH}>CLASSIFICACIÓ DEL MES</div>
+              <div style={sty.sectionH}>CLASSIFICACIÓ COMPLETA</div>
               <WAButton text={shareLeaderboardText()} label="📲 Compartir" small />
             </div>
             {leaderboard.map((u, i) => {
               const isMe = u.id === member.id;
               const willWin = i < CFG.PRIZES.length && currentGroup && currentGroup.bote_EUR > 0;
               const prizeEUR = willWin ? currentGroup.bote_EUR * CFG.PRIZES[i] : 0;
+              const flag = teamFlag(u.name);
               return (
                 <div key={u.id} style={{ background: isMe ? "linear-gradient(135deg,#2a1d00,#1a1200)" : C.card, border: `1px solid ${isMe ? C.gold : C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ width: 30, textAlign: "center", fontFamily: "var(--pff)", fontWeight: 900, fontSize: i < 3 ? 24 : 16, color: i < 3 ? C.gold : C.muted }}>{["🥇", "🥈", "🥉"][i] || i + 1}</div>
@@ -2164,6 +2136,20 @@ export default function App() {
                 </div>
               ))}
             </div>
+
+            {/* INSÍGNIES */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <div style={sty.sectionH}>🏅 INSÍGNIES ({myBadges.length}/{badges.length})</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginBottom: 18 }}>
+              {badges.map(bd => (
+                <div key={bd.id} title={bd.desc} style={{ background: bd.got ? "linear-gradient(135deg,#2a1d00,#1a1200)" : C.card, border: `1px solid ${bd.got ? C.gold : C.border}`, borderRadius: 10, padding: "10px 4px", textAlign: "center", opacity: bd.got ? 1 : 0.4 }}>
+                  <div style={{ fontSize: 26, marginBottom: 4, filter: bd.got ? "none" : "grayscale(1)" }}>{bd.icon}</div>
+                  <div style={{ fontSize: 8, color: bd.got ? C.gold : C.muted, fontFamily: "var(--pff2)", fontWeight: 700, letterSpacing: 0.3, lineHeight: 1.2 }}>{bd.name.toUpperCase()}</div>
+                </div>
+              ))}
+            </div>
+
             <div style={sty.sectionH}>HISTORIAL ({myBets.length})</div>
             {myBets.length === 0 ? (
               <div style={{ textAlign: "center", padding: 40, color: C.muted }}>
@@ -2174,12 +2160,13 @@ export default function App() {
               const m = matches.find(mm => mm.id === b.matchId);
               if (!m) return null;
               const net = b.settled ? (b.payout - b.amount) : null;
+              const fH = teamFlag(m.home), fA = teamFlag(m.away);
               return (
                 <div key={b.id} style={{ background: C.card, borderRadius: 10, padding: "10px 14px", marginBottom: 6, border: `1px solid ${C.border}`, display: "flex", gap: 10, alignItems: "center" }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 11, color: C.muted, fontFamily: "var(--pff)" }}>
-                      {m.home} vs {m.away}
-                      {m.superBono && " ⚡"}{m.europa && " 🌍"}{b.joker && " 🃏"}
+                      {fH && `${fH} `}{m.home} vs {m.away}{fA && ` ${fA}`}
+                      {m.spain && " 🇪🇸"}
                     </div>
                     <div style={{ fontWeight: 700, fontSize: 14, color: C.txt, marginTop: 2 }}>
                       → {b.outcome === "H" ? m.home : b.outcome === "A" ? m.away : "Empat"}
@@ -2243,7 +2230,7 @@ export default function App() {
         <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
         {[
           { id: "matches", i: "⚽", l: "PARTITS" },
-          { id: "jackpot", i: "🇪🇸", l: "JACKPOT" },
+          { id: "jackpot", i: "🏆", l: "JACKPOT" },
           { id: "ranking", i: "📊", l: "RANKING" },
           { id: "more", i: "⋯", l: "MÉS" },
         ].map(t => (
@@ -2275,11 +2262,9 @@ export default function App() {
         />
       )}
       {showRules && member?.seenWelcome && <RulesScreen firstTime={false} onClose={() => setShowRules(false)} />}
-      {showWeeklyModal && (
-        <WeeklySummaryModal data={{ currentGroup, leaderboard, weekTopGain, myWeekNet, myWeekBets, myWeekHits, shareText: shareWeeklyText() }} onClose={() => setShowWeeklyModal(false)} />
-      )}
       {showEmojiChange && <EmojiChangeModal current={account.emoji || "🍺"} onSave={updateEmoji} onClose={() => setShowEmojiChange(false)} />}
       {showAdminLogin && <AdminPassModal onSubmit={tryAdmin} onClose={() => setShowAdminLogin(false)} />}
+      {confetti && <Confetti />}
       <Toast toast={toast} />
     </div>
   );
