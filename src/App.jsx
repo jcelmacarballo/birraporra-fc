@@ -9,7 +9,7 @@ import { supabase, db, auth } from "./supabase.js";
 // ─────────────────────────── 1. CONFIG ────────────────────────────────────
 const CFG = {
   ADMIN_PASS: "gol2024",
-  ENTRY_EUR: 10.00, START_BIRRAS: 100, BIRRA_EUR: 0.10, BEER_EUR: 2.50,
+  ENTRY_EUR: 10.00, START_BIRRAS: 150, BIRRA_EUR: 0.10, BEER_EUR: 2.50,
   PRIZES: [0.40, 0.30, 0.20, 0.10],
   EXACT_BONUS: 1.5,
   // Cara o Creu
@@ -329,7 +329,7 @@ function SupabaseLoginScreen({ onAdmin }) {
 }
 
 // ─────────────────────────── 5c. GROUP PICKER ─────────────────────────────
-function GroupPicker({ account, groups, members, adminMode, onJoinGroup, onCreateGroup, onSelectGroup, onLogout, onAdminLogin }) {
+function GroupPicker({ account, groups, members, matches = [], adminMode, onJoinGroup, onCreateGroup, onSelectGroup, onLogout, onAdminLogin }) {
   const [mode, setMode] = useState("list"); // "list" | "join" | "create"
   const [code, setCode] = useState("");
   const [groupName, setGroupName] = useState("");
@@ -375,17 +375,33 @@ function GroupPicker({ account, groups, members, adminMode, onJoinGroup, onCreat
           {myGroups.length > 0 && (
             <>
               <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2.5, marginBottom: 10, fontWeight: 600 }}>SELECCIONA UN GRUP</div>
-              {myGroups.map(g => (
-                <button key={g.id} onClick={() => onSelectGroup(g.id)}
-                  style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 8, display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", textAlign: "left", position: "relative", overflow: "hidden" }}>
-                  <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
-                  <div>
-                    <div style={{ fontFamily: "var(--pff)", fontSize: 20, color: C.txt, letterSpacing: 1, lineHeight: 1.1 }}>{g.name}</div>
-                    {g.joinCode && adminMode && <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.amber, letterSpacing: 2, marginTop: 4, fontWeight: 600 }}>CODI: {g.joinCode}</div>}
-                  </div>
-                  <span style={{ color: C.gold, fontSize: 22 }}>→</span>
-                </button>
-              ))}
+              {myGroups.map(g => {
+                const memberCount = members.filter(m => m.groupId === g.id).length;
+                const nextMatch = matches
+                  .filter(m => m.groupId === g.id && m.status !== "finished" && m.date && new Date(m.date).getTime() > Date.now())
+                  .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+                return (
+                  <button key={g.id} onClick={() => onSelectGroup(g.id)}
+                    style={{ width: "100%", background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "16px 18px", marginBottom: 8, cursor: "pointer", textAlign: "left", position: "relative", overflow: "hidden" }}>
+                    <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: "var(--pff)", fontSize: 22, color: C.txt, letterSpacing: 1, lineHeight: 1.1 }}>{g.name}</div>
+                        <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, marginTop: 4, fontWeight: 600 }}>
+                          💰 {fmtEUR(g.bote_EUR || 0)} · 👥 {memberCount} {memberCount === 1 ? "jugador" : "jugadors"}
+                        </div>
+                        {g.joinCode && adminMode && <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.amber, letterSpacing: 2, marginTop: 3, fontWeight: 600 }}>CODI: {g.joinCode}</div>}
+                      </div>
+                      <span style={{ color: C.gold, fontSize: 22, flexShrink: 0, marginLeft: 8 }}>→</span>
+                    </div>
+                    {nextMatch && (
+                      <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`, fontSize: 12, color: C.muted }}>
+                        <span style={{ color: C.amber, fontFamily: "var(--pff2)", fontWeight: 600, letterSpacing: 1 }}>PRÒXIM:</span> {nextMatch.home} vs {nextMatch.away}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
               <div style={{ height: 16 }} />
             </>
           )}
@@ -551,76 +567,81 @@ function PodiumSpot({ user, rank, isMe, height }) {
 function MatchCard({ match, userBet, onBet, member }) {
   const done = match.status === "finished";
   const started = matchStarted(match) && !done;
-  const cardBg = match.spain ? "#2a0a14" : C.card;
-  const borderColor = match.spain ? C.red : C.border;
+  const cardBg = match.spain ? "#1a0a10" : C.card;
+  // Contorn: vermell per Espanya, groc subtil per partits normals
+  const borderColor = match.spain ? C.red : "rgba(245,197,24,0.4)";
+  const borderWidth = match.spain ? 2 : 1.5;
   const cd = (!done && !started) ? countdown(match.date) : null;
 
+  // Text clar de l'aposta: "Espanya guanya" / "Empat" + marcador
+  const betOutcomeText = userBet ? (userBet.outcome === "H" ? `${match.home} guanya` : userBet.outcome === "A" ? `${match.away} guanya` : "Empat") : "";
+
   return (
-    <div style={{ background: cardBg, borderRadius: 14, padding: 16, marginBottom: 12, border: `1px solid ${borderColor}`, position: "relative", overflow: "hidden" }}>
+    <div style={{ background: cardBg, borderRadius: 14, padding: 16, marginBottom: 12, border: `${borderWidth}px solid ${borderColor}`, position: "relative", overflow: "hidden" }}>
       {match.spain && <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, gap: 6, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, fontWeight: 600 }}>{match.league}</span>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
+        <span style={{ fontFamily: "var(--pff2)", fontSize: 12, color: C.muted, letterSpacing: 2, fontWeight: 600 }}>{match.league}{match.date ? ` · ${fmtDate(match.date)}` : ""}</span>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
           {match.spain && <Chip color={C.red} bg="#3a0814" border={C.red}>🇪🇸 ESPANYA</Chip>}
           {done ? <Chip color={C.muted} bg={C.card2}>FINALITZAT</Chip> : started ? <LockedChip /> : <Chip color={C.green} bg="#0d1f00">● OBERT</Chip>}
         </div>
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-        <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 22, color: C.txt, textAlign: "right", letterSpacing: 1, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
-          <span>{match.home}</span><FlagBadge name={match.home} />
-        </span>
-        <div style={{ minWidth: 70, textAlign: "center" }}>
-          {match.result ? <span style={{ fontFamily: "var(--pff)", fontSize: 28, color: C.gold }}>{match.result.home}–{match.result.away}</span> : <span style={{ fontFamily: "var(--pff2)", fontSize: 14, color: C.muted, fontWeight: 700 }}>VS</span>}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
+          <span style={{ fontFamily: "var(--pff)", fontSize: 26, color: C.txt, letterSpacing: 1, lineHeight: 1, textAlign: "right" }}>{match.home}</span>
+          <FlagBadge name={match.home} size={13} />
         </div>
-        <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 22, color: C.txt, textAlign: "left", letterSpacing: 1, display: "flex", alignItems: "center", gap: 6 }}>
-          <FlagBadge name={match.away} /><span>{match.away}</span>
-        </span>
+        <div style={{ minWidth: 60, textAlign: "center" }}>
+          {match.result ? <span style={{ fontFamily: "var(--pff)", fontSize: 32, color: C.gold }}>{match.result.home}–{match.result.away}</span> : <span style={{ fontFamily: "var(--pff2)", fontSize: 15, color: C.muted, fontWeight: 700 }}>VS</span>}
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5 }}>
+          <span style={{ fontFamily: "var(--pff)", fontSize: 26, color: C.txt, letterSpacing: 1, lineHeight: 1, textAlign: "left" }}>{match.away}</span>
+          <FlagBadge name={match.away} size={13} />
+        </div>
       </div>
-      {match.date && <div style={{ fontSize: 11, color: C.muted, textAlign: "center", marginBottom: cd ? 4 : 10 }}>{fmtDate(match.date)}</div>}
       {cd && (
-        <div style={{ textAlign: "center", marginBottom: 10 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: cd.urgent ? "#3a0814" : C.card2, color: cd.urgent ? C.red : C.muted, fontFamily: "var(--pff2)", fontSize: 11, fontWeight: 700, letterSpacing: 1, padding: "3px 10px", borderRadius: 12, border: cd.urgent ? `1px solid ${C.red}` : "none", animation: cd.urgent ? "pulse 2s ease-in-out infinite" : "none" }}>
+        <div style={{ textAlign: "center", marginBottom: 12 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: cd.urgent ? "#3a0814" : C.card2, color: cd.urgent ? C.red : C.muted, fontFamily: "var(--pff2)", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "4px 12px", borderRadius: 12, border: cd.urgent ? `1px solid ${C.red}` : "none", animation: cd.urgent ? "pulse 2s ease-in-out infinite" : "none" }}>
             ⏱ TANCA EN {cd.text}
           </span>
         </div>
       )}
       {!done && !started && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
           {[["H", match.home], ["D", "Empat"], ["A", match.away]].map(([k, lbl]) => (
-            <div key={k} style={{ flex: 1, background: C.card2, padding: "8px 4px", borderRadius: 8, textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--pff2)", fontSize: 9, color: C.muted, letterSpacing: 1, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", marginBottom: 2, fontWeight: 600 }}>{lbl}</div>
+            <div key={k} style={{ flex: 1, background: C.card2, padding: "9px 4px", borderRadius: 8, textAlign: "center" }}>
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 1, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", marginBottom: 3, fontWeight: 600 }}>{lbl}</div>
               <Cuota value={match.cuotas[k]} />
             </div>
           ))}
         </div>
       )}
       {userBet && (
-        <div style={{ background: C.card2, borderRadius: 8, padding: "10px 12px", marginBottom: 10, fontSize: 13 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-            <span style={{ color: C.muted, fontSize: 10, fontFamily: "var(--pff2)", letterSpacing: 1.5, fontWeight: 600 }}>LA TEVA PORRA</span>
-          </div>
-          <div style={{ color: C.txt, fontWeight: 500 }}>
-            → {userBet.outcome === "H" ? `Guanya ${match.home}` : userBet.outcome === "A" ? `Guanya ${match.away}` : "Empat"}
-            {userBet.exactScore && <span style={{ color: C.amber, marginLeft: 6 }}>+ {userBet.exactScore.replace("-", "–")} ⭐</span>}
-            <span style={{ color: C.gold, marginLeft: 8 }}>{userBet.amount}🍺</span>
+        <div style={{ background: "rgba(245,197,24,0.07)", border: "1px solid rgba(245,197,24,0.25)", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
+          <div style={{ color: C.muted, fontSize: 11, fontFamily: "var(--pff2)", letterSpacing: 2, fontWeight: 600, marginBottom: 6 }}>LA TEVA PORRA</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span style={{ fontFamily: "var(--pff)", fontSize: 20, color: C.txt, letterSpacing: 0.5 }}>{betOutcomeText}</span>
+            {userBet.exactScore && <span style={{ background: C.card2, color: C.gold, fontFamily: "var(--pff)", fontSize: 16, padding: "2px 10px", borderRadius: 6 }}>{userBet.exactScore.replace("-", "–")} ⭐</span>}
+            <span style={{ marginLeft: "auto", fontFamily: "var(--pff)", fontSize: 20, color: C.gold }}>{userBet.amount}🍺</span>
           </div>
           {userBet.settled && (
-            <div style={{ marginTop: 6, paddingTop: 6, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between" }}>
-              <span style={{ color: C.muted }}>Resultat:</span>
-              <span style={{ fontFamily: "var(--pff)", fontSize: 18, color: userBet.payout > 0 ? C.green : C.red }}>
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ color: C.muted, fontSize: 13 }}>Resultat</span>
+              <span style={{ fontFamily: "var(--pff)", fontSize: 22, color: userBet.payout > 0 ? C.green : C.red }}>
                 {userBet.payout > 0 ? `+${userBet.payout - userBet.amount}🍺 ✓` : `−${userBet.amount}🍺 ✗`}
               </span>
             </div>
           )}
         </div>
       )}
-      {!done && !started && (
-        <button onClick={() => onBet(match)} disabled={member.birras < 1} style={{ ...sty.btnPrimary, width: "100%", opacity: member.birras < 1 ? 0.4 : 1, cursor: member.birras < 1 ? "not-allowed" : "pointer" }}>
-          🍺 {userBet ? "EDITAR PORRA" : "FER PORRA"}
+      {!done && !started && onBet && (
+        <button onClick={() => onBet(match)} disabled={member.birras < 1}
+          style={{ width: "100%", background: "transparent", color: member.birras < 1 ? C.muted : C.gold, border: `1px solid ${member.birras < 1 ? C.border : "rgba(245,197,24,0.6)"}`, borderRadius: 10, padding: "12px", fontFamily: "var(--pff)", fontSize: 17, letterSpacing: 2, cursor: member.birras < 1 ? "not-allowed" : "pointer" }}>
+          {userBet ? "✏️ EDITAR PORRA" : "⚽ FER PORRA"}
         </button>
       )}
-      {started && !userBet && <div style={{ color: C.muted, fontSize: 12, textAlign: "center", padding: 6 }}>🔒 El partit ha començat</div>}
-      {done && !userBet && <div style={{ color: C.muted, fontSize: 12, textAlign: "center", padding: 6 }}>No hi vas participar</div>}
+      {started && !userBet && <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 6 }}>🔒 El partit ha començat</div>}
+      {done && !userBet && <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 6 }}>No hi vas participar</div>}
     </div>
   );
 }
@@ -721,23 +742,20 @@ function BetModal({ match, member, existing, jokerAvailable, onSubmit, onClose }
 function EspanyaModal({ match, currentPot, carryPot, member, existing, onSubmit, onClose }) {
   const [home, setHome] = useState(existing?.home ?? "");
   const [away, setAway] = useState(existing?.away ?? "");
-  const [amount, setAmount] = useState(existing?.amount ?? CFG.ESPANYA_MIN_BET);
   const [err, setErr] = useState("");
+  const [showHow, setShowHow] = useState(false);
 
-  const minBet = CFG.ESPANYA_MIN_BET;
-  // Si edita, només pot afegir més; si és nou, ha de tenir prou birres
+  const bet = CFG.ESPANYA_MIN_BET; // aposta FIXA per tothom
   const alreadyPaid = existing?.amount ?? 0;
-  const needed = Math.max(0, amount - alreadyPaid);
-  const canAfford = member.birras >= needed;
+  const needed = existing ? 0 : bet; // si ja ha apostat, només canvia el pronòstic (gratis)
+  const canAfford = existing ? true : member.birras >= bet;
 
   const submit = () => {
     setErr("");
-    const h = parseInt(home), a = parseInt(away), amt = parseInt(amount);
-    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return setErr("Resultat exacte no vàlid");
-    if (isNaN(amt) || amt < minBet) return setErr(`Aposta mínima: ${minBet}🍺`);
-    if (amt < alreadyPaid) return setErr("No pots reduir l'aposta");
-    if (!canAfford) return setErr(`Necessites ${needed}🍺 més`);
-    onSubmit({ home: h, away: a, amount: amt });
+    const h = parseInt(home), a = parseInt(away);
+    if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return setErr("Posa el resultat exacte");
+    if (!canAfford) return setErr(`Necessites ${bet}🍺 per jugar`);
+    onSubmit({ home: h, away: a, amount: bet });
   };
 
   return (
@@ -746,54 +764,63 @@ function EspanyaModal({ match, currentPot, carryPot, member, existing, onSubmit,
         <div style={{ width: 40, height: 4, background: C.border, borderRadius: 2, margin: "0 auto 14px" }} />
         <div style={{ textAlign: "center", marginBottom: 14 }}>
           <div style={{ fontSize: 36, marginBottom: 4 }}>🇪🇸</div>
-          <div style={{ fontFamily: "var(--pff)", fontSize: 24, color: C.red, letterSpacing: 3 }}>JACKPOT ESPANYA</div>
-          <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, marginTop: 6, letterSpacing: 2, fontWeight: 600 }}>RESULTAT EXACTE · GUANYADOR S'HO ENDÚ TOT</div>
+          <div style={{ fontFamily: "var(--pff)", fontSize: 26, color: C.red, letterSpacing: 3 }}>JACKPOT ESPANYA</div>
+          <button onClick={() => setShowHow(!showHow)} style={{ background: "none", border: `1px solid ${C.muted}`, color: C.muted, borderRadius: 20, padding: "4px 14px", fontSize: 12, fontFamily: "var(--pff2)", fontWeight: 600, letterSpacing: 1, cursor: "pointer", marginTop: 8 }}>
+            ℹ️ COM FUNCIONA?
+          </button>
         </div>
+
+        {showHow && (
+          <div style={{ background: C.card2, borderRadius: 12, padding: 16, marginBottom: 14, border: `1px solid ${C.red}` }}>
+            <div style={{ fontSize: 14, color: C.txt, lineHeight: 1.7 }}>
+              <p style={{ marginBottom: 8 }}>🎯 Tothom aposta <b style={{ color: C.red }}>{bet}🍺 fixes</b> i prediu el <b>resultat exacte</b> del partit d'Espanya.</p>
+              <p style={{ marginBottom: 8 }}>🏆 Qui encerti el marcador exacte <b style={{ color: C.gold }}>s'emporta TOT el pot</b> acumulat.</p>
+              <p style={{ marginBottom: 8 }}>🔄 Si ningú no l'encerta, les birres <b>s'acumulen</b> pel pròxim partit d'Espanya.</p>
+              <p>✏️ Pots canviar el teu pronòstic fins que comenci el partit (sense pagar més).</p>
+            </div>
+          </div>
+        )}
 
         {/* Pot acumulat */}
         <div style={{ background: "linear-gradient(135deg,#3a0820,#180510)", borderRadius: 14, padding: 16, marginBottom: 14, textAlign: "center", border: `1px solid ${C.red}` }}>
-          <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.red, letterSpacing: 3, fontWeight: 600 }}>POT TOTAL EN JOC</div>
-          <div style={{ fontFamily: "var(--pff)", fontSize: 48, color: C.gold, lineHeight: 1, marginTop: 4 }}>{currentPot + carryPot}🍺</div>
-          {carryPot > 0 && <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>({carryPot}🍺 acumulats + {currentPot}🍺 d'aquest partit)</div>}
+          <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.red, letterSpacing: 3, fontWeight: 600 }}>POT TOTAL EN JOC</div>
+          <div style={{ fontFamily: "var(--pff)", fontSize: 52, color: C.gold, lineHeight: 1, marginTop: 4 }}>{currentPot + carryPot}🍺</div>
+          {carryPot > 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>({carryPot}🍺 acumulats + {currentPot}🍺 d'aquest partit)</div>}
         </div>
 
         {/* Partit */}
         <div style={{ background: C.card, borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${C.border}` }}>
-          <div style={{ fontFamily: "var(--pff2)", fontSize: 9, color: C.muted, letterSpacing: 2, marginBottom: 6, fontWeight: 600 }}>{match.league}{match.date ? ` · ${fmtDate(match.date)}` : ""}</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 20, color: C.txt, textAlign: "right" }}>{match.home}</span>
-            <span style={{ color: C.muted, fontFamily: "var(--pff2)", fontSize: 12, fontWeight: 700 }}>VS</span>
-            <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 20, color: C.txt, textAlign: "left" }}>{match.away}</span>
+          <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, marginBottom: 10, fontWeight: 600 }}>{match.league}{match.date ? ` · ${fmtDate(match.date)}` : ""}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
+            <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 24, color: C.txt, textAlign: "right" }}>{match.home}</span>
+            <span style={{ color: C.muted, fontFamily: "var(--pff2)", fontSize: 13, fontWeight: 700 }}>VS</span>
+            <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 24, color: C.txt, textAlign: "left" }}>{match.away}</span>
           </div>
+          <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 2, textAlign: "center", marginBottom: 10, fontWeight: 600 }}>EL TEU PRONÒSTIC EXACTE</div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 14 }}>
             <input type="number" min="0" max="15" placeholder="?" value={home}
               onChange={e => setHome(e.target.value)}
-              style={{ width: 64, height: 64, textAlign: "center", fontSize: 30, fontFamily: "var(--pff)", background: C.bg, border: `2px solid ${home !== "" ? C.red : C.border}`, borderRadius: 10, color: C.red, outline: "none" }} />
-            <span style={{ fontSize: 26, color: C.border, fontFamily: "var(--pff)" }}>–</span>
+              style={{ width: 70, height: 70, textAlign: "center", fontSize: 34, fontFamily: "var(--pff)", background: C.bg, border: `2px solid ${home !== "" ? C.red : C.border}`, borderRadius: 10, color: C.red, outline: "none" }} />
+            <span style={{ fontSize: 28, color: C.border, fontFamily: "var(--pff)" }}>–</span>
             <input type="number" min="0" max="15" placeholder="?" value={away}
               onChange={e => setAway(e.target.value)}
-              style={{ width: 64, height: 64, textAlign: "center", fontSize: 30, fontFamily: "var(--pff)", background: C.bg, border: `2px solid ${away !== "" ? C.red : C.border}`, borderRadius: 10, color: C.red, outline: "none" }} />
+              style={{ width: 70, height: 70, textAlign: "center", fontSize: 34, fontFamily: "var(--pff)", background: C.bg, border: `2px solid ${away !== "" ? C.red : C.border}`, borderRadius: 10, color: C.red, outline: "none" }} />
           </div>
         </div>
 
-        {/* Aposta */}
-        <div style={{ background: C.card2, borderRadius: 12, padding: 14, marginBottom: 14 }}>
-          <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, marginBottom: 8, fontWeight: 600 }}>QUANTES BIRRES APOSTES?</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <input type="number" min={Math.max(minBet, alreadyPaid)} max={member.birras + alreadyPaid} value={amount}
-              onChange={e => setAmount(e.target.value)}
-              style={{ flex: 1, padding: "12px 14px", textAlign: "center", fontFamily: "var(--pff)", fontSize: 26, background: C.bg, border: `2px solid ${C.red}`, borderRadius: 10, color: C.red, outline: "none" }} />
-            <span style={{ fontSize: 28 }}>🍺</span>
+        {/* Aposta fixa */}
+        <div style={{ background: C.card2, borderRadius: 12, padding: "14px 16px", marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 2, fontWeight: 600 }}>APOSTA FIXA</div>
+            <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>{existing ? "Ja has pagat · només canvies el pronòstic" : `Tens ${member.birras}🍺`}</div>
           </div>
-          <div style={{ fontSize: 11, color: C.muted, marginTop: 8, textAlign: "center" }}>
-            {existing ? `(ja vas pagar ${alreadyPaid}🍺, et faltarien ${needed}🍺) · ` : ""}tens {member.birras}🍺 · mínim {minBet}🍺
-          </div>
+          <div style={{ fontFamily: "var(--pff)", fontSize: 36, color: C.red }}>{existing ? "✓" : `${bet}🍺`}</div>
         </div>
 
         {err && <p style={{ color: C.red, fontSize: 13, textAlign: "center", marginBottom: 10 }}>⚠ {err}</p>}
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ ...sty.btnGhost, flex: 1 }}>CANCEL·LAR</button>
-          <button onClick={submit} style={{ ...sty.btnPrimary, flex: 2, background: C.red, color: "#fff" }}>{existing ? "DESAR APOSTA" : "A PEL POT! 🏆"}</button>
+          <button onClick={submit} style={{ ...sty.btnPrimary, flex: 2, background: C.red, color: "#fff" }}>{existing ? "DESAR PRONÒSTIC" : "A PEL POT! 🏆"}</button>
         </div>
       </div>
     </div>
@@ -1228,21 +1255,33 @@ export default function App() {
 
   useEffect(() => { setLastSeen(prev => ({ ...prev, [tab]: Date.now() })); }, [tab, activeGroupId]);
 
-  // Detectar guanys nous i disparar confeti
+  // Detectar resultats nous i notificar + confeti si guanyes
   useEffect(() => {
     if (!account || !activeGroupId) { seenWinsRef.current = null; return; }
     const mem = members.find(m => m.accountId === account.id && m.groupId === activeGroupId);
     if (!mem) return;
-    const wins = bets.filter(b => b.memberId === mem.id && b.settled && b.payout > 0).length;
+    const settledBets = bets.filter(b => b.memberId === mem.id && b.settled);
+    const settledCount = settledBets.length;
+    const wins = settledBets.filter(b => b.payout > 0).length;
     if (seenWinsRef.current === null) {
-      // Primera càrrega: guardem el nombre actual sense celebrar
-      seenWinsRef.current = wins;
+      // Primera càrrega: guardem l'estat actual sense notificar
+      seenWinsRef.current = { wins, settled: settledCount };
       return;
     }
-    if (wins > seenWinsRef.current) {
-      seenWinsRef.current = wins;
-      setConfetti(true);
-      setTimeout(() => setConfetti(false), 3000);
+    const prev = seenWinsRef.current;
+    if (settledCount > prev.settled) {
+      // Hi ha resultats nous des de l'última vegada
+      const newWins = wins - prev.wins;
+      const newResults = settledCount - prev.settled;
+      if (newWins > 0) {
+        // Calcular guany total dels nous encerts
+        setConfetti(true);
+        setTimeout(() => setConfetti(false), 3000);
+        showToast(`🎉 Has guanyat ${newWins} porra${newWins > 1 ? "es" : ""}!`, "success");
+      } else if (newResults > 0) {
+        showToast(`📋 ${newResults} resultat${newResults > 1 ? "s" : ""} nou${newResults > 1 ? "s" : ""}. Mira "Les meves porres"`, "info");
+      }
+      seenWinsRef.current = { wins, settled: settledCount };
     }
   }, [bets, members, account, activeGroupId]);
   useEffect(() => { if (tab === "chat" && chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [tab, chats, activeGroupId]);
@@ -1474,7 +1513,7 @@ export default function App() {
     setClasico(updatedClasico); setMembers(updatedMembers);
     await dbSet(KEYS.clasico, updatedClasico); await dbSet(KEYS.members, updatedMembers);
     setShowClasico(false);
-    showToast(existing ? `Aposta actualitzada a ${amount}🍺` : `Endins amb ${amount}🍺! 🇪🇸`, "success");
+    showToast(existing ? `Pronòstic actualitzat 🇪🇸` : `Endins al pot amb ${amount}🍺! 🇪🇸`, "success");
   };
   const submitClasico = submitEspanya; // alies retrocompatible
 
@@ -1730,6 +1769,15 @@ export default function App() {
     const idxA = LEAGUES.indexOf(a), idxB = LEAGUES.indexOf(b);
     return (idxA === -1 ? 99 : idxA) - (idxB === -1 ? 99 : idxB);
   });
+  // Partits oberts on encara NO he apostat (per al comptador de la nav)
+  const myBetIds = new Set(myBets.map(b => b.matchId));
+  const unbettedCount = bettableMatches.filter(m => !myBetIds.has(m.id)).length;
+  // N'hi ha algun urgent (tanca en <3h) sense apostar?
+  const hasUrgentUnbetted = bettableMatches.some(m => {
+    if (myBetIds.has(m.id)) return false;
+    const c = countdown(m.date);
+    return c && c.urgent;
+  });
 
   // ── JACKPOT ESPANYA ──────────────────────────────────────────────────────
   // Estructura nova: clasico[gid] = { byMatch: { [matchId]: { entries, total } }, settled, carry }
@@ -1770,31 +1818,6 @@ export default function App() {
   }).sort((a, b) => b.birras - a.birras);
   const myRank = member ? leaderboard.findIndex(u => u.id === member.id) + 1 : 0;
   const jokerAvailable = member && member.jokerWeek !== weekKey();
-
-  // ── INSÍGNIES / ASSOLIMENTS ───────────────────────────────────────────────
-  const myBetsSettled = member ? bets.filter(b => b.memberId === member.id && b.settled) : [];
-  const myWins = myBetsSettled.filter(b => b.payout > 0).length;
-  const myExacts = myBetsSettled.filter(b => {
-    if (!b.exactScore) return false;
-    const mt = matches.find(mm => mm.id === b.matchId);
-    return mt?.result && b.exactScore === scoreKey(mt.result.home, mt.result.away);
-  }).length;
-  // Ratxa actual de victòries (ordenades per data)
-  const myBetsByDate = [...myBetsSettled].sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-  let curStreak = 0, maxStreak = 0;
-  for (const b of myBetsByDate) { if (b.payout > 0) { curStreak++; maxStreak = Math.max(maxStreak, curStreak); } else curStreak = 0; }
-  const myEspanyaWins = espanyaHistory ? espanyaHistory.filter(([_, info]) => info.winners && info.winners.some(w => w.memberId === member?.id)).length : 0;
-  const badges = [
-    { id: "first", icon: "🎯", name: "Primera victòria", got: myWins >= 1, desc: "Encerta la teva primera porra" },
-    { id: "exact", icon: "🔮", name: "Endeví", got: myExacts >= 1, desc: "Clava un resultat exacte" },
-    { id: "streak3", icon: "🔥", name: "En ratxa", got: maxStreak >= 3, desc: "3 encerts seguits" },
-    { id: "streak5", icon: "⚡", name: "Imparable", got: maxStreak >= 5, desc: "5 encerts seguits" },
-    { id: "rich", icon: "💰", name: "Ric", got: member && member.birras >= 100, desc: "Acumula 100🍺" },
-    { id: "veteran", icon: "🎖️", name: "Veterà", got: myBetsSettled.length >= 10, desc: "Juga 10 porres" },
-    { id: "espanya", icon: "🇪🇸", name: "Patriota", got: myEspanyaWins >= 1, desc: "Guanya el Jackpot d'Espanya" },
-    { id: "leader", icon: "👑", name: "Líder", got: myRank === 1 && leaderboard.length > 1, desc: "Sigues 1r del ranking" },
-  ];
-  const myBadges = badges.filter(b => b.got);
 
   const groupChat = currentGroup ? (chats[currentGroup.id] || []) : [];
   const hasNewChat = groupChat.length > 0 && groupChat[groupChat.length - 1].ts > lastSeen.chat && groupChat[groupChat.length - 1].accountId !== account?.id;
@@ -1944,6 +1967,7 @@ export default function App() {
       account={account}
       groups={groups}
       members={members}
+      matches={matches}
       adminMode={adminMode}
       onJoinGroup={doJoinGroupV4}
       onCreateGroup={doCreateGroupV4}
@@ -1966,7 +1990,8 @@ export default function App() {
     );
   }
 
-  if (showRules && !member?.seenWelcome) return <RulesScreen firstTime onClose={markSeenWelcome} />;
+  // Normes automàtiques: si el membre encara no les ha vist, mostrar-les sí o sí
+  if (member && !member.seenWelcome) return <RulesScreen firstTime onClose={markSeenWelcome} />;
 
   const headerStat = (label, value, color = C.gold) => (
     <div style={{ flex: 1, textAlign: "center" }}>
@@ -2038,25 +2063,54 @@ export default function App() {
             )}
 
             {/* OBERTS */}
-            {matchSection === "open" && (<>
-              {leaguesOrdered.length === 0 && (
-                <div style={{ textAlign: "center", padding: "60px 20px", color: C.muted }}>
-                  <div style={{ fontSize: 56, marginBottom: 12 }}>🏟️</div>
-                  <p style={{ fontFamily: "var(--pff)", fontSize: 22 }}>SENSE PARTITS OBERTS</p>
-                </div>
-              )}
-              {leaguesOrdered.map(lg => (
-                <div key={lg} style={{ marginBottom: 18 }}>
-                  <div style={{ fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 11, color: C.amber, letterSpacing: 2, marginBottom: 8, paddingLeft: 4, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 18, height: 2, background: C.amber, opacity: 0.6 }} />
-                    {lg.toUpperCase()}
-                    <span style={{ flex: 1, height: 1, background: C.border }} />
-                    <span style={{ color: C.muted, fontSize: 11 }}>{openByLeague[lg].length}</span>
+            {matchSection === "open" && (() => {
+              const bettedIds = new Set(myBets.map(b => b.matchId));
+              const myBetted = bettableMatches.filter(m => bettedIds.has(m.id));
+              const notBetted = bettableMatches.filter(m => !bettedIds.has(m.id));
+              const notBettedByLeague = notBetted.reduce((acc, m) => { (acc[m.league] = acc[m.league] || []).push(m); return acc; }, {});
+              const notBettedLeagues = Object.keys(notBettedByLeague).sort((a, b) => {
+                const ia = LEAGUES.indexOf(a), ib = LEAGUES.indexOf(b);
+                return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+              });
+              return (<>
+                {bettableMatches.length === 0 && (
+                  <div style={{ textAlign: "center", padding: "60px 20px", color: C.muted }}>
+                    <div style={{ fontSize: 56, marginBottom: 12 }}>🏟️</div>
+                    <p style={{ fontFamily: "var(--pff)", fontSize: 22 }}>SENSE PARTITS OBERTS</p>
                   </div>
-                  {openByLeague[lg].map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={setBetMatch} member={member} />)}
-                </div>
-              ))}
-            </>)}
+                )}
+
+                {/* HAS APOSTAT */}
+                {myBetted.length > 0 && (<>
+                  <div style={{ fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 13, color: C.gold, letterSpacing: 2, marginBottom: 10, paddingLeft: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 18, height: 2, background: C.gold, opacity: 0.6 }} />
+                    🎯 HAS APOSTAT
+                    <span style={{ flex: 1, height: 1, background: C.border }} />
+                    <span style={{ color: C.muted, fontSize: 12 }}>{myBetted.length}</span>
+                  </div>
+                  {myBetted.map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={setBetMatch} member={member} />)}
+                  <div style={{ height: 18 }} />
+                </>)}
+
+                {/* POTS APOSTAR */}
+                {notBetted.length > 0 && (<>
+                  <div style={{ fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 13, color: C.amber, letterSpacing: 2, marginBottom: 10, paddingLeft: 4, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 18, height: 2, background: C.amber, opacity: 0.6 }} />
+                    POTS APOSTAR
+                    <span style={{ flex: 1, height: 1, background: C.border }} />
+                    <span style={{ color: C.muted, fontSize: 12 }}>{notBetted.length}</span>
+                  </div>
+                  {notBettedLeagues.map(lg => (
+                    <div key={lg} style={{ marginBottom: 14 }}>
+                      {notBettedLeagues.length > 1 && (
+                        <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 1.5, marginBottom: 6, paddingLeft: 4, fontWeight: 600 }}>{lg.toUpperCase()}</div>
+                      )}
+                      {notBettedByLeague[lg].map(m => <MatchCard key={m.id} match={m} userBet={null} onBet={setBetMatch} member={member} />)}
+                    </div>
+                  ))}
+                </>)}
+              </>);
+            })()}
 
             {/* EN JOC */}
             {matchSection === "live" && (<>
@@ -2270,53 +2324,85 @@ export default function App() {
         {/* Pestanyes stats i chat eliminades en v3 */}
 
         {/* ─── MIS PORRAS ─── */}
-        {tab === "mine" && (
-          <div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-              {[
-                { l: "Birres", v: member.birras, s: "🍺", hi: true },
-                { l: "Jugades", v: myBets.length, s: "" },
-                { l: "Encerts", v: myBets.filter(b => b.payout > 0).length, s: "" },
-              ].map(s => (
-                <div key={s.l} style={{ flex: 1, background: C.card, border: `1px solid ${s.hi ? C.gold : C.border}`, borderRadius: 12, padding: "12px 6px", textAlign: "center" }}>
-                  <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 24, color: s.hi ? C.gold : C.txt, lineHeight: 1 }}>{s.v}<span style={{ fontSize: 13 }}>{s.s}</span></div>
-                  <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>{s.l}</div>
+        {tab === "mine" && (() => {
+          // Construïm l'historial de moviments combinant porres + jackpot + cara o creu
+          const moves = [];
+          // Porres liquidades
+          for (const b of myBets) {
+            const m = matches.find(mm => mm.id === b.matchId);
+            if (!m) continue;
+            if (b.settled) {
+              const net = b.payout - b.amount;
+              moves.push({
+                ts: m.settledAt || b.createdAt || 0,
+                icon: net > 0 ? "✅" : "❌",
+                title: `${m.home} vs ${m.away}`,
+                sub: net > 0 ? `Vas encertar` : `No va sortir`,
+                delta: net,
+                spain: m.spain,
+              });
+            } else {
+              moves.push({
+                ts: b.createdAt || 0,
+                icon: "🎯",
+                title: `${m.home} vs ${m.away}`,
+                sub: `Aposta feta · pendent`,
+                delta: -b.amount,
+                pending: true,
+                spain: m.spain,
+              });
+            }
+          }
+          // Jackpot Espanya (settled)
+          if (espanyaHistory) {
+            for (const [mid, info] of espanyaHistory) {
+              const won = info.winners && info.winners.find(w => w.memberId === member.id);
+              if (won) {
+                const m = matches.find(x => x.id === mid);
+                const share = info.winners.length > 0 ? Math.floor(info.totalPot / info.winners.length) : 0;
+                moves.push({ ts: info.date, icon: "🏆", title: `Jackpot Espanya`, sub: m ? `${m.home} vs ${m.away}` : "Guanyat!", delta: share, spain: true });
+              }
+            }
+          }
+          moves.sort((a, b) => b.ts - a.ts);
+
+          return (
+            <div>
+              <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+                {[
+                  { l: "Birres", v: member.birras, s: "🍺", hi: true },
+                  { l: "Jugades", v: myBets.length, s: "" },
+                  { l: "Encerts", v: myBets.filter(b => b.payout > 0).length, s: "" },
+                ].map(s => (
+                  <div key={s.l} style={{ flex: 1, background: C.card, border: `1px solid ${s.hi ? C.gold : C.border}`, borderRadius: 12, padding: "12px 6px", textAlign: "center" }}>
+                    <div style={{ fontFamily: "var(--pff)", fontSize: 28, color: s.hi ? C.gold : C.txt, lineHeight: 1 }}>{s.v}<span style={{ fontSize: 14 }}>{s.s}</span></div>
+                    <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>{s.l}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={sty.sectionH}>📊 MOVIMENTS DE BIRRES</div>
+              {moves.length === 0 ? (
+                <div style={{ textAlign: "center", padding: 40, color: C.muted }}>
+                  <div style={{ fontSize: 40, marginBottom: 8 }}>📊</div>
+                  <p style={{ fontFamily: "var(--pff)", fontSize: 20 }}>ENCARA RES</p>
+                  <p style={{ fontSize: 12, marginTop: 4 }}>Fes la teva primera porra!</p>
+                </div>
+              ) : moves.map((mv, i) => (
+                <div key={i} style={{ background: C.card, borderRadius: 10, padding: "11px 14px", marginBottom: 6, border: `1px solid ${mv.spain ? "rgba(228,21,27,0.3)" : C.border}`, display: "flex", gap: 12, alignItems: "center" }}>
+                  <span style={{ fontSize: 22, flexShrink: 0 }}>{mv.icon}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontFamily: "var(--pff2)", fontSize: 14, fontWeight: 600, color: C.txt, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mv.title}{mv.spain ? " 🇪🇸" : ""}</div>
+                    <div style={{ fontSize: 12, color: C.muted, marginTop: 1 }}>{mv.sub}</div>
+                  </div>
+                  <div style={{ flexShrink: 0, fontFamily: "var(--pff)", fontSize: 20, color: mv.pending ? C.muted : (mv.delta > 0 ? C.green : C.red) }}>
+                    {mv.delta > 0 ? "+" : ""}{mv.delta}🍺
+                  </div>
                 </div>
               ))}
             </div>
-
-            <div style={sty.sectionH}>HISTORIAL ({myBets.length})</div>
-            {myBets.length === 0 ? (
-              <div style={{ textAlign: "center", padding: 40, color: C.muted }}>
-                <div style={{ fontSize: 40, marginBottom: 8 }}>📊</div>
-                <p style={{ fontFamily: "var(--pff)", fontWeight: 800, fontSize: 18 }}>ENCARA RES</p>
-              </div>
-            ) : [...myBets].reverse().map(b => {
-              const m = matches.find(mm => mm.id === b.matchId);
-              if (!m) return null;
-              const net = b.settled ? (b.payout - b.amount) : null;
-              const fH = teamFlag(m.home), fA = teamFlag(m.away);
-              return (
-                <div key={b.id} style={{ background: C.card, borderRadius: 10, padding: "10px 14px", marginBottom: 6, border: `1px solid ${C.border}`, display: "flex", gap: 10, alignItems: "center" }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 11, color: C.muted, fontFamily: "var(--pff)" }}>
-                      {fH && `${fH} `}{m.home} vs {m.away}{fA && ` ${fA}`}
-                      {m.spain && " 🇪🇸"}
-                    </div>
-                    <div style={{ fontWeight: 700, fontSize: 14, color: C.txt, marginTop: 2 }}>
-                      → {b.outcome === "H" ? m.home : b.outcome === "A" ? m.away : "Empat"}
-                      {b.exactScore && <span style={{ color: C.amber, marginLeft: 4 }}>+ {b.exactScore.replace("-", "–")}</span>}
-                      <span style={{ color: C.gold, marginLeft: 6 }}>{b.amount}🍺</span>
-                    </div>
-                  </div>
-                  {net !== null ? (
-                    <div style={{ flexShrink: 0, padding: "6px 10px", borderRadius: 8, background: net > 0 ? "#0d1f00" : "#200000", color: net > 0 ? C.green : C.red, fontFamily: "var(--pff)", fontWeight: 900, fontSize: 16 }}>{net > 0 ? "+" : ""}{net}🍺</div>
-                  ) : <div style={{ fontSize: 11, color: C.muted }}>pendent</div>}
-                </div>
-              );
-            })}
-          </div>
-        )}
+          );
+        })()}
 
         {/* ─── MÉS ─── */}
         {/* ─── ESTADÍSTIQUES ─── */}
@@ -2453,14 +2539,19 @@ export default function App() {
       <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: C.card, borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 50 }}>
         <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
         {[
-          { id: "matches", i: "⚽", l: "PARTITS" },
+          { id: "matches", i: "⚽", l: "PARTITS", badge: unbettedCount, urgent: hasUrgentUnbetted },
           { id: "jackpot", i: "🏆", l: "JACKPOT" },
           { id: "ranking", i: "📊", l: "RANKING" },
           { id: "stats", i: "📈", l: "STATS" },
           { id: "more", i: "⋯", l: "MÉS" },
         ].map(t => (
           <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "10px 2px 8px", background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", borderTop: `2px solid ${tab === t.id ? C.gold : "transparent"}`, position: "relative" }}>
-            <span style={{ fontSize: 20 }}>{t.i}</span>
+            <span style={{ fontSize: 20, position: "relative" }}>
+              {t.i}
+              {t.badge > 0 && (
+                <span style={{ position: "absolute", top: -4, right: -10, minWidth: 16, height: 16, padding: "0 4px", background: t.urgent ? C.red : C.amber, color: t.urgent ? "#fff" : "#000", borderRadius: 8, fontSize: 10, fontWeight: 700, fontFamily: "var(--pff2)", display: "flex", alignItems: "center", justifyContent: "center", animation: t.urgent ? "pulse 1.5s ease-in-out infinite" : "none" }}>{t.badge}</span>
+              )}
+            </span>
             <span style={{ fontSize: 9, color: tab === t.id ? C.gold : C.muted, fontFamily: "var(--pff2)", letterSpacing: 1, fontWeight: 600 }}>{t.l}</span>
           </button>
         ))}
