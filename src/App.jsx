@@ -82,20 +82,47 @@ const teamFlag = (name) => { const n = findNation(name); return n ? n.f : ""; };
 
 
 // ─────────────────────────── 2. STORAGE & UTILS ───────────────────────────
+// Totes les dades es guarden en UN sol document a Supabase ("bporra_v10_all").
+// Així el polling fa 1 petició en lloc de 9. Les KEYS són les claus internes
+// dins d'aquest document.
+const DOC_KEY = "bporra_v10_all";
 const KEYS = {
-  accounts: "bporra_v8_accounts",
-  groups: "bporra_v8_groups",
-  members: "bporra_v8_members",
-  matches: "bporra_v8_matches",
-  bets: "bporra_v8_bets",
-  clasico: "bporra_v8_clasico",
-  europa: "bporra_v8_europa",
-  chats: "bporra_v8_chats",
-  coinflips: "bporra_v8_coinflips",
+  accounts: "accounts",
+  groups: "groups",
+  members: "members",
+  matches: "matches",
+  bets: "bets",
+  clasico: "clasico",
+  europa: "europa",
+  chats: "chats",
+  coinflips: "coinflips",
 };
 
-async function dbGet(k) { try { return await db.get(k); } catch { return null; } }
-async function dbSet(k, v) { try { await db.set(k, v); } catch (e) { console.error("dbSet error", e); } }
+// Caché local del document sencer
+let _docCache = null;
+async function _loadDoc() {
+  try {
+    const doc = await db.get(DOC_KEY);
+    _docCache = doc && typeof doc === "object" ? doc : {};
+  } catch { _docCache = {}; }
+  return _docCache;
+}
+async function dbGet(k) {
+  // Llegeix una clau del document. Si no hi ha caché, carrega el document sencer.
+  if (_docCache === null) await _loadDoc();
+  return _docCache[k] ?? null;
+}
+async function dbSet(k, v) {
+  // Actualitza una clau i desa el document sencer (read-modify-write sobre caché)
+  if (_docCache === null) await _loadDoc();
+  _docCache = { ..._docCache, [k]: v };
+  try { await db.set(DOC_KEY, _docCache); } catch (e) { console.error("dbSet error", e); }
+}
+// Recarrega el document sencer de Supabase (1 petició) i retorna totes les claus
+async function dbReloadAll() {
+  await _loadDoc();
+  return _docCache;
+}
 
 const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36);
 const hash = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h) + s.charCodeAt(i); return String(h >>> 0); };
@@ -177,10 +204,6 @@ const LockedChip = () => <Chip color={C.muted} bg={C.card2} border={C.border}>�
 
 function Cuota({ value, big }) {
   return <span style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: big ? 24 : 16, color: C.gold, lineHeight: 1 }}>×{Number(value).toFixed(2)}</span>;
-}
-function RedDot({ show }) {
-  if (!show) return null;
-  return <span style={{ position: "absolute", top: 6, right: "30%", width: 8, height: 8, background: C.red, borderRadius: "50%", boxShadow: "0 0 6px rgba(224,56,56,0.7)" }} />;
 }
 function WAButton({ text, label = "📲 Compartir al WhatsApp", small }) {
   return <button onClick={() => shareToWhatsApp(text)} style={{ ...sty.btnWA, padding: small ? "6px 10px" : "8px 14px", fontSize: small ? 11 : 13 }}>{label}</button>;
@@ -711,7 +734,14 @@ function BetModal({ match, member, existing, jokerAvailable, onSubmit, onClose }
             <span style={{ fontFamily: "var(--pff)", fontSize: 30, color: C.gold, minWidth: 90, textAlign: "center" }}>{amount}🍺</span>
             <button onClick={() => setAmount(Math.min(maxBet, amount + 5))} style={{ width: 32, height: 32, borderRadius: 6, background: C.bg, border: `1px solid ${C.border}`, color: C.txt, cursor: "pointer", fontWeight: 700, fontSize: 18 }}>+</button>
           </div>
-          <input type="range" min="1" max={Math.max(1, maxBet)} value={amount} onChange={e => setAmount(parseInt(e.target.value))} style={{ width: "100%", accentColor: C.gold }} />
+          <input type="range" min="1" max={Math.max(1, maxBet)} value={amount} onChange={e => setAmount(parseInt(e.target.value))} style={{ width: "100%", accentColor: C.gold, marginBottom: 10 }} />
+          {/* Botons ràpids */}
+          <div style={{ display: "flex", gap: 6 }}>
+            {[5, 10, 25, 50].filter(v => v <= maxBet).map(v => (
+              <button key={v} onClick={() => setAmount(v)} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, background: amount === v ? C.gold : C.bg, color: amount === v ? "#000" : C.txt, border: `1px solid ${amount === v ? C.gold : C.border}`, fontFamily: "var(--pff2)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{v}🍺</button>
+            ))}
+            <button onClick={() => setAmount(maxBet)} style={{ flex: 1, padding: "8px 4px", borderRadius: 8, background: amount === maxBet ? C.red : C.bg, color: amount === maxBet ? "#fff" : C.red, border: `1px solid ${C.red}`, fontFamily: "var(--pff2)", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>MÀX</button>
+          </div>
         </div>
         <div style={{ background: "linear-gradient(135deg,#0d2200,#0a1500)", border: `1px solid ${C.green}`, borderRadius: 10, padding: "10px 14px", marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1064,6 +1094,18 @@ function AdminPanel({ data, handlers, onClose }) {
             <input type="datetime-local" value={nm.date} onChange={e => setNm(p => ({ ...p, date: e.target.value }))} style={sty.input} />
             <div style={{ background: C.card2, borderRadius: 10, padding: 12 }}>
               <div style={{ ...sty.label, marginBottom: 8 }}>QUOTES (1X2)</div>
+              <div style={{ display: "flex", gap: 6, marginBottom: 10, flexWrap: "wrap" }}>
+                {[
+                  { lbl: "🏠 Local favorit", c: { H: "1.40", D: "4.00", A: "7.00" } },
+                  { lbl: "⚖️ Igualat", c: { H: "2.50", D: "3.20", A: "2.70" } },
+                  { lbl: "✈️ Visit. favorit", c: { H: "7.00", D: "4.00", A: "1.40" } },
+                ].map(p => (
+                  <button key={p.lbl} type="button" onClick={() => setNm(prev => ({ ...prev, cuotas: p.c }))}
+                    style={{ flex: "1 1 30%", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, padding: "8px 4px", color: C.muted, fontSize: 11, fontFamily: "var(--pff2)", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" }}>
+                    {p.lbl}
+                  </button>
+                ))}
+              </div>
               <div style={{ display: "flex", gap: 8 }}>
                 {[["H", "Local"], ["D", "Empat"], ["A", "Visit."]].map(([k, lbl]) => (
                   <div key={k} style={{ flex: 1, textAlign: "center" }}>
@@ -1072,6 +1114,7 @@ function AdminPanel({ data, handlers, onClose }) {
                   </div>
                 ))}
               </div>
+              <div style={{ fontSize: 10, color: C.muted, marginTop: 8, textAlign: "center" }}>💡 Toca un preset per omplir-les automàticament, o edita-les a mà</div>
             </div>
             <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#0d2200", padding: 12, borderRadius: 8, cursor: "pointer", border: `1px solid ${C.green}` }}>
               <input type="checkbox" checked={nm.applyToAllGroups} onChange={e => setNm(p => ({ ...p, applyToAllGroups: e.target.checked }))} style={{ accentColor: C.green, width: 18, height: 18 }} />
@@ -1221,12 +1264,9 @@ export default function App() {
   const [showEmojiChange, setShowEmojiChange] = useState(false);
   const [adminMode, setAdminMode] = useState(false);
   const [toast, setToast] = useState(null);
-  const [chatInput, setChatInput] = useState("");
-  const [lastSeen, setLastSeen] = useState({ matches: 0, jackpot: 0, ranking: 0, chat: 0, mine: 0, stats: 0 });
   const [tick, setTick] = useState(0);
   const [confetti, setConfetti] = useState(false);
   const seenWinsRef = useRef(null);
-  const chatEndRef = useRef(null);
 
   useEffect(() => {
     const link = document.createElement("link"); link.rel = "stylesheet";
@@ -1236,14 +1276,11 @@ export default function App() {
     s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(380px) rotate(720deg);opacity:0}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#e4151b 0%,#e4151b 33%,#009a5b 33%,#009a5b 66%,#0038a8 66%,#0038a8 100%);height:3px;width:100%}.hosts-stripe{background:linear-gradient(90deg,#e4151b,#009a5b,#0038a8);height:4px;width:100%}`;
     document.head.appendChild(s);
     const loadShared = async () => {
-      // Carrega NOMÉS les dades compartides (matches, bets, etc.)
-      // Mai sobreescriu account ni activeGroupId — els gestiona syncFromUser
-      const [a, g, mb, m, b, cl, eu, ch, cf] = await Promise.all([
-        dbGet(KEYS.accounts), dbGet(KEYS.groups), dbGet(KEYS.members),
-        dbGet(KEYS.matches), dbGet(KEYS.bets), dbGet(KEYS.clasico), dbGet(KEYS.europa), dbGet(KEYS.chats), dbGet(KEYS.coinflips),
-      ]);
-      setAccounts(a || []); setGroups(g || []); setMembers(mb || []);
-      setMatches(m || []); setBets(b || []); setClasico(cl || {}); setEuropa(eu || {}); setChats(ch || {}); setCoinflips(cf || {});
+      // 1 SOLA petició: recarrega el document sencer i reparteix les claus
+      const doc = await dbReloadAll();
+      setAccounts(doc.accounts || []); setGroups(doc.groups || []); setMembers(doc.members || []);
+      setMatches(doc.matches || []); setBets(doc.bets || []); setClasico(doc.clasico || {});
+      setEuropa(doc.europa || {}); setChats(doc.chats || {}); setCoinflips(doc.coinflips || {});
     };
     // Càrrega inicial: quan acaba, marca loaded=true
     loadShared().then(() => setLoaded(true));
@@ -1253,7 +1290,6 @@ export default function App() {
     return () => { clearInterval(t1); clearInterval(t2); };
   }, []);
 
-  useEffect(() => { setLastSeen(prev => ({ ...prev, [tab]: Date.now() })); }, [tab, activeGroupId]);
 
   // Detectar resultats nous i notificar + confeti si guanyes
   useEffect(() => {
@@ -1284,7 +1320,6 @@ export default function App() {
       seenWinsRef.current = { wins, settled: settledCount };
     }
   }, [bets, members, account, activeGroupId]);
-  useEffect(() => { if (tab === "chat" && chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: "smooth" }); }, [tab, chats, activeGroupId]);
 
   // ── SUPABASE AUTH: escoltar sessió i sincronitzar amb 'account' ───────────
   // S'executa en muntar el component, independentment de 'loaded'
@@ -1480,8 +1515,6 @@ export default function App() {
   };
 
   // CHAT eliminat — usuari prefereix WhatsApp
-  const sendChatMessage = async () => {};
-  const sendChat = async () => {};
 
   // Jackpot Espanya: cada partit té el seu pot. L'usuari pot apostar una
   // quantitat de birres + predicció exacta. Edita per pujar la quantitat.
@@ -1587,7 +1620,6 @@ export default function App() {
     setShowCoin(false);
     showToast(`💰 Has agafat ${won}🍺!`, "success");
     if (won >= CFG.COIN_ENTRY * 4) {
-      await sendChatMessage(`🪙 ${account.emoji} ${account.name} s'ha plantat al Cara o Creu amb ${won}🍺! Crack!`, true);
     }
   };
 
@@ -1819,8 +1851,6 @@ export default function App() {
   const myRank = member ? leaderboard.findIndex(u => u.id === member.id) + 1 : 0;
   const jokerAvailable = member && member.jokerWeek !== weekKey();
 
-  const groupChat = currentGroup ? (chats[currentGroup.id] || []) : [];
-  const hasNewChat = groupChat.length > 0 && groupChat[groupChat.length - 1].ts > lastSeen.chat && groupChat[groupChat.length - 1].accountId !== account?.id;
 
   // Resum setmanal
   const showWeeklySummary = isMondayMorning() && currentGroup && groupMembers.length > 0;
@@ -2021,7 +2051,7 @@ export default function App() {
         </div>
       </div>
 
-      <div style={{ padding: tab === "chat" ? 0 : 14, animation: "fadeIn 0.3s ease" }}>
+      <div style={{ padding: 14, animation: "fadeIn 0.3s ease" }}>
 
         {/* ─── PARTITS ─── */}
         {tab === "matches" && (
@@ -2033,12 +2063,33 @@ export default function App() {
               <div style={{ fontFamily: "var(--pff)", fontSize: 64, color: member.birras > 0 ? C.gold : C.red, lineHeight: 1 }}>{member.birras}<span style={{ fontSize: 36 }}>🍺</span></div>
             </div>
             {/* Stats secundàries */}
-            <div style={{ background: C.card, borderRadius: 12, padding: "10px 14px", marginBottom: 14, display: "flex", border: `1px solid ${C.border}` }}>
+            <div style={{ background: C.card, borderRadius: 12, padding: "10px 14px", marginBottom: 12, display: "flex", border: `1px solid ${C.border}` }}>
               {headerStat("POSICIÓ", myRank ? `${myRank}r` : "—", C.gold)}
               <div style={{ width: 1, background: C.border }} />
               {headerStat("ENCERTS", `${myBets.filter(b => b.payout > 0).length}`, C.green)}
               <div style={{ width: 1, background: C.border }} />
               {headerStat("PARTITS", `${myBets.length}`, C.muted)}
+            </div>
+
+            {/* DASHBOARD: pròxim partit + jackpot */}
+            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+              {(() => {
+                const next = bettableMatches[0];
+                const cd = next ? countdown(next.date) : null;
+                return (
+                  <div onClick={() => next && setBetMatch(next)} style={{ flex: 2, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", cursor: next ? "pointer" : "default" }}>
+                    <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, fontWeight: 600, marginBottom: 4 }}>⚽ PRÒXIM PARTIT</div>
+                    {next ? (<>
+                      <div style={{ fontFamily: "var(--pff)", fontSize: 18, color: C.txt, lineHeight: 1.1 }}>{teamCode(next.home) || next.home} – {teamCode(next.away) || next.away}</div>
+                      {cd && <div style={{ fontSize: 11, color: cd.urgent ? C.red : C.amber, marginTop: 3, fontWeight: 600 }}>⏱ {cd.text}</div>}
+                    </>) : <div style={{ fontSize: 13, color: C.muted }}>Cap de moment</div>}
+                  </div>
+                );
+              })()}
+              <div onClick={() => espanyaActiveMatch && setTab("jackpot")} style={{ flex: 1, background: "#1a0a10", border: `1px solid ${C.red}`, borderRadius: 12, padding: "12px 14px", cursor: "pointer", textAlign: "center" }}>
+                <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.red, letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>🇪🇸 POT</div>
+                <div style={{ fontFamily: "var(--pff)", fontSize: 26, color: C.gold, lineHeight: 1 }}>{espanyaCurrentPot + espanyaCarryPot}🍺</div>
+              </div>
             </div>
 
             {/* Selector Oberts / En joc / Finalitzats */}
@@ -2291,6 +2342,29 @@ export default function App() {
               </div>
             )}
 
+            {/* PREMIS FINALS */}
+            {currentGroup && currentGroup.bote_EUR > 0 && leaderboard.length > 0 && (
+              <div style={{ background: "linear-gradient(135deg,#1a1400,#0a0a0a)", border: `1px solid ${C.gold}`, borderRadius: 14, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.gold, letterSpacing: 2, fontWeight: 700, marginBottom: 4 }}>🏆 SI EL MUNDIAL ACABÉS ARA</div>
+                <div style={{ fontSize: 11, color: C.muted, marginBottom: 12 }}>Repartiment del pot de {fmtEUR(currentGroup.bote_EUR)}</div>
+                {CFG.PRIZES.map((pct, i) => {
+                  const u = leaderboard[i];
+                  if (!u) return null;
+                  const eur = currentGroup.bote_EUR * pct;
+                  const medals = ["🥇", "🥈", "🥉", "4️⃣"];
+                  return (
+                    <div key={u.id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 0", borderBottom: i < CFG.PRIZES.length - 1 ? `1px solid ${C.border}` : "none" }}>
+                      <span style={{ fontSize: 20 }}>{medals[i]}</span>
+                      <span style={{ fontSize: 22 }}>{u.emoji}</span>
+                      <span style={{ flex: 1, fontFamily: "var(--pff2)", fontSize: 15, fontWeight: 600, color: u.id === member.id ? C.gold : C.txt }}>{u.name}{u.id === member.id ? " (tu)" : ""}</span>
+                      <span style={{ fontFamily: "var(--pff)", fontSize: 24, color: C.gold }}>{fmtEUR(eur)}</span>
+                    </div>
+                  );
+                })}
+                <div style={{ fontSize: 10, color: C.muted, marginTop: 10, textAlign: "center", fontStyle: "italic" }}>Encara pot canviar tot! 💪</div>
+              </div>
+            )}
+
             <div style={{ marginBottom: 12 }}>
               <div style={sty.sectionH}>CLASSIFICACIÓ COMPLETA</div>
             </div>
@@ -2321,7 +2395,6 @@ export default function App() {
         )}
 
         {/* ─── STATS ─── */}
-        {/* Pestanyes stats i chat eliminades en v3 */}
 
         {/* ─── MIS PORRAS ─── */}
         {tab === "mine" && (() => {
@@ -2380,6 +2453,43 @@ export default function App() {
                   </div>
                 ))}
               </div>
+
+              {/* GRÀFIC D'EVOLUCIÓ DE BIRRES */}
+              {(() => {
+                // Reconstruïm l'evolució: partim de START_BIRRAS i apliquem moviments cronològicament
+                const chronological = [...moves].filter(m => !m.pending).sort((a, b) => a.ts - b.ts);
+                if (chronological.length < 2) return null;
+                // Punt inicial + acumulat
+                let running = CFG.START_BIRRAS;
+                const points = [running];
+                for (const mv of chronological) { running += mv.delta; points.push(running); }
+                const maxV = Math.max(...points), minV = Math.min(...points);
+                const range = maxV - minV || 1;
+                const W = 300, H = 80, pad = 4;
+                const coords = points.map((v, i) => {
+                  const x = pad + (i / (points.length - 1)) * (W - pad * 2);
+                  const y = pad + (1 - (v - minV) / range) * (H - pad * 2);
+                  return `${x.toFixed(1)},${y.toFixed(1)}`;
+                });
+                const last = points[points.length - 1];
+                const trend = last >= CFG.START_BIRRAS;
+                return (
+                  <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: 14, marginBottom: 16 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+                      <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 2, fontWeight: 600 }}>📈 EVOLUCIÓ DE BIRRES</div>
+                      <div style={{ fontFamily: "var(--pff)", fontSize: 16, color: trend ? C.green : C.red }}>{trend ? "↗" : "↘"} {last}🍺</div>
+                    </div>
+                    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: 80 }} preserveAspectRatio="none">
+                      <polyline points={coords.join(" ")} fill="none" stroke={trend ? C.green : C.red} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+                      <line x1={pad} y1={pad + (1 - (CFG.START_BIRRAS - minV) / range) * (H - pad * 2)} x2={W - pad} y2={pad + (1 - (CFG.START_BIRRAS - minV) / range) * (H - pad * 2)} stroke={C.border} strokeWidth="1" strokeDasharray="3,3" />
+                    </svg>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, color: C.muted, marginTop: 4 }}>
+                      <span>Inici: {CFG.START_BIRRAS}🍺</span>
+                      <span>Ara: {last}🍺</span>
+                    </div>
+                  </div>
+                );
+              })()}
 
               <div style={sty.sectionH}>📊 MOVIMENTS DE BIRRES</div>
               {moves.length === 0 ? (
