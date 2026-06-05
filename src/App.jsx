@@ -106,26 +106,59 @@ const KEYS = {
 
 // Caché local del document sencer
 let _docCache = null;
+// Versió local: cada cop que escrivim, l'incrementem. Permet detectar canvis locals
+// que el servidor encara no té propagats i no sobreescriure'ls amb el reload.
+let _localVersion = 0;
+let _serverVersion = 0;
+// Lock de "estem escrivint a Supabase": bloqueja reload durant l'escriptura
+let _writingLock = 0;
+
 async function _loadDoc() {
   try {
     const doc = await db.get(DOC_KEY);
-    _docCache = doc && typeof doc === "object" ? doc : {};
-  } catch { _docCache = {}; }
+    if (doc && typeof doc === "object") {
+      // Si el servidor té una versió més nova o no tenim caché, usem la del servidor
+      const sv = doc.__v || 0;
+      if (_docCache === null || sv >= _localVersion) {
+        _docCache = doc;
+        _serverVersion = sv;
+        _localVersion = sv;
+      }
+      // Si el local és més nou (acabem d'escriure i el servidor encara no ho té),
+      // mantenim el caché local i no el sobreescrivim
+    } else {
+      if (_docCache === null) _docCache = {};
+    }
+  } catch {
+    if (_docCache === null) _docCache = {};
+  }
   return _docCache;
 }
+
 async function dbGet(k) {
-  // Llegeix una clau del document. Si no hi ha caché, carrega el document sencer.
   if (_docCache === null) await _loadDoc();
   return _docCache[k] ?? null;
 }
+
 async function dbSet(k, v) {
-  // Actualitza una clau i desa el document sencer (read-modify-write sobre caché)
   if (_docCache === null) await _loadDoc();
-  _docCache = { ..._docCache, [k]: v };
-  try { await db.set(DOC_KEY, _docCache); } catch (e) { console.error("dbSet error", e); }
+  _localVersion++;
+  _docCache = { ..._docCache, [k]: v, __v: _localVersion };
+  _writingLock++;
+  try {
+    await db.set(DOC_KEY, _docCache);
+    _serverVersion = _localVersion;
+  } catch (e) {
+    console.error("dbSet error", e);
+  } finally {
+    _writingLock--;
+  }
 }
-// Recarrega el document sencer de Supabase (1 petició) i retorna totes les claus
+
+// Recarrega el document sencer de Supabase (1 petició). Bloqueja si hi ha una
+// escriptura pendent i preserva canvis locals encara no propagats.
 async function dbReloadAll() {
+  if (_writingLock > 0) return _docCache; // no recarreguis enmig d'una escriptura
   await _loadDoc();
   return _docCache;
 }
@@ -1394,10 +1427,9 @@ export default function App() {
       mbs = [...mbs, newMember];
       // +10€ al pot del grup automàticament
       grps = grps.map(g => g.id === found.id ? { ...g, bote_EUR: (g.bote_EUR || 0) + CFG.ENTRY_EUR } : g);
-      await Promise.all([
-        dbSet(KEYS.members, mbs),
-        dbSet(KEYS.groups, grps),
-      ]);
+      // SEQÜENCIAL (no Promise.all): cada dbSet desa el document sencer, en paral·lel es trepitjarien
+      await dbSet(KEYS.members, mbs);
+      await dbSet(KEYS.groups, grps);
       setMembers(mbs);
     }
     setGroups(grps);
@@ -1774,13 +1806,12 @@ export default function App() {
     const ucl = { ...clasico };
     delete ucl[groupId];
     setGroups(ug); setMembers(um); setMatches(umt); setBets(ub); setClasico(ucl);
-    await Promise.all([
-      dbSet(KEYS.groups, ug),
-      dbSet(KEYS.members, um),
-      dbSet(KEYS.matches, umt),
-      dbSet(KEYS.bets, ub),
-      dbSet(KEYS.clasico, ucl),
-    ]);
+    // SEQÜENCIAL: cada dbSet desa el document sencer
+    await dbSet(KEYS.groups, ug);
+    await dbSet(KEYS.members, um);
+    await dbSet(KEYS.matches, umt);
+    await dbSet(KEYS.bets, ub);
+    await dbSet(KEYS.clasico, ucl);
     if (activeGroupId === groupId) setActiveGroupId(null);
     showToast("Grup esborrat 🗑️", "success");
   };
@@ -1980,10 +2011,9 @@ export default function App() {
       mbs = [...mbs, newMember];
       // +10€ al pot del grup
       grps = grps.map(g => g.id === gid ? { ...g, bote_EUR: (g.bote_EUR || 0) + CFG.ENTRY_EUR } : g);
-      await Promise.all([
-        dbSet(KEYS.members, mbs),
-        dbSet(KEYS.groups, grps),
-      ]);
+      // SEQÜENCIAL: cada dbSet desa el document sencer
+      await dbSet(KEYS.members, mbs);
+      await dbSet(KEYS.groups, grps);
       setMembers(mbs);
       setGroups(grps);
     } else if (latestMembers) {
