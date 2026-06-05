@@ -20,10 +20,16 @@ const CFG = {
 };
 
 const C = {
-  bg: "#0a0a0a", card: "#141414", card2: "#1e1e1e", border: "#2a2a2a",
-  gold: "#f5c518", amber: "#e4a010", muted: "#888888", txt: "#ffffff",
-  red: "#e4151b", green: "#006847", blue: "#002868", purple: "#7c3aed",
-  rose: "#f43f5e", cyan: "#22d3ee",
+  bg: "#F4F6FA", card: "#FFFFFF", card2: "#EEF2FB", border: "#E8ECF4",
+  gold: "#F5A623", amber: "#D97706", muted: "#8A96A8", txt: "#0F1923",
+  red: "#E4151B", green: "#059669", blue: "#003DA5", blue2: "#1A56C4",
+  purple: "#7C3AED", rose: "#F43F5E", cyan: "#0EA5E9",
+  // colors addicionals C+
+  hdr: "#003DA5",       // header blau FIFA
+  hdrtxt: "#FFFFFF",    // text sobre header
+  hdrfade: "rgba(255,255,255,0.12)",
+  success: "#059669",
+  bluePale: "#EEF2FB",
 };
 
 const LEAGUES = ["Fase de Grup", "1/16", "Vuitens", "Quarts", "Semifinal", "Final"];
@@ -184,34 +190,34 @@ function settleBets(allBets, match) {
 
 // ─────────────────────────── 4. STYLES & ATOMS ────────────────────────────
 const sty = {
-  btnPrimary: { background: C.gold, color: "#0c0900", border: "none", borderRadius: 10, padding: "14px 16px", fontFamily: "var(--pff)", fontWeight: 900, fontSize: 18, letterSpacing: 1, cursor: "pointer" },
-  btnGhost: { background: C.card2, color: C.muted, border: "none", borderRadius: 10, padding: "14px 16px", fontFamily: "var(--pff)", fontWeight: 700, fontSize: 16, cursor: "pointer" },
-  btnWA: { background: "#25d366", color: "#fff", border: "none", borderRadius: 8, padding: "8px 14px", fontFamily: "var(--pff)", fontWeight: 700, fontSize: 13, letterSpacing: 0.5, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 6 },
-  input: { padding: "12px 14px", background: C.bg, border: `1px solid ${C.border}`, borderRadius: 8, color: C.txt, fontSize: 15, outline: "none", width: "100%", fontFamily: "inherit" },
-  label: { fontSize: 11, color: C.muted, fontFamily: "var(--pff)", letterSpacing: 1, display: "block", marginBottom: 4 },
-  sectionH: { fontFamily: "var(--pff)", fontWeight: 800, fontSize: 13, color: C.gold, letterSpacing: 2, marginBottom: 12 },
-  card: { background: C.card, borderRadius: 12, border: `1px solid ${C.border}`, padding: 14 },
+  btnPrimary: { background: C.blue, color: "#fff", border: "none", borderRadius: 12, padding: "14px 16px", fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 16, letterSpacing: 1, cursor: "pointer", boxShadow: "0 4px 14px rgba(0,61,165,0.25)" },
+  btnGhost: { background: "transparent", color: C.muted, border: `1.5px solid ${C.border}`, borderRadius: 12, padding: "14px 16px", fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 15, cursor: "pointer" },
+  btnRed: { background: C.red, color: "#fff", border: "none", borderRadius: 12, padding: "14px 16px", fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 16, letterSpacing: 1, cursor: "pointer", boxShadow: "0 4px 14px rgba(228,21,27,0.25)" },
+  card: { background: C.card, borderRadius: 16, padding: 16, marginBottom: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.06)" },
+  sectionH: { fontFamily: "var(--pff)", fontSize: 16, color: C.blue, letterSpacing: 2, marginBottom: 10 },
+  label: { fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, fontWeight: 700 },
+  input: { width: "100%", background: C.bg, border: `1.5px solid ${C.border}`, borderRadius: 10, padding: "12px 14px", color: C.txt, fontSize: 15, fontFamily: "Inter, sans-serif", outline: "none" },
 };
 
 function Chip({ children, color = C.muted, bg = C.card2, border }) {
   return <span style={{ background: bg, color, fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 4, letterSpacing: 1, fontFamily: "var(--pff)", border: border ? `1px solid ${border}` : "none", whiteSpace: "nowrap" }}>{children}</span>;
 }
-const SuperChip = () => <Chip color={C.gold} bg="#3a1800" border={C.amber}>⚡ SÚPER BONUS</Chip>;
-const EuropaChip = () => <Chip color={C.purple} bg="#1a0a2e" border="#5a2080">🌍 TOP 5 EUROPA</Chip>;
-const JokerChip = () => <Chip color={C.blue} bg="#0a1a2e" border={C.blue}>🃏 JOKER ×2</Chip>;
-const ClasicoChip = () => <Chip color={C.rose} bg="#2a0512" border={C.rose}>🏆 JACKPOT</Chip>;
+const SuperChip = () => <Chip color={C.gold} bg="#FEF3C7" border={C.amber}>⚡ SÚPER BONUS</Chip>;
+const EuropaChip = () => <Chip color={C.purple} bg="#F3E8FF" border={C.purple}>🌍 TOP 5 EUROPA</Chip>;
+const JokerChip = () => <Chip color={C.blue} bg={C.bluePale} border={C.blue}>🃏 JOKER ×2</Chip>;
+const ClasicoChip = () => <Chip color={C.rose} bg="#FFE4E6" border={C.rose}>🏆 JACKPOT</Chip>;
 const LockedChip = () => <Chip color={C.muted} bg={C.card2} border={C.border}>🔒 TANCAT</Chip>;
 
 function Cuota({ value, big }) {
-  return <span style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: big ? 24 : 16, color: C.gold, lineHeight: 1 }}>×{Number(value).toFixed(2)}</span>;
+  return <span style={{ fontFamily: "var(--pff)", fontSize: big ? 24 : 18, color: C.blue, lineHeight: 1 }}>×{Number(value).toFixed(2)}</span>;
 }
 function WAButton({ text, label = "📲 Compartir al WhatsApp", small }) {
   return <button onClick={() => shareToWhatsApp(text)} style={{ ...sty.btnWA, padding: small ? "6px 10px" : "8px 14px", fontSize: small ? 11 : 13 }}>{label}</button>;
 }
 function Toast({ toast }) {
   if (!toast) return null;
-  const palette = { success: { bg: "#0d2200", border: C.green }, info: { bg: "#0a1a2e", border: C.blue }, warn: { bg: "#2a1800", border: C.amber }, error: { bg: "#2a0000", border: C.red } }[toast.type] || { bg: C.card, border: C.border };
-  return <div style={{ position: "fixed", top: 70, left: "50%", transform: "translateX(-50%)", background: palette.bg, color: C.txt, padding: "10px 18px", borderRadius: 10, border: `1px solid ${palette.border}`, zIndex: 400, fontSize: 14, fontWeight: 600, animation: "slideUp 0.3s ease", maxWidth: "90vw" }}>{toast.msg}</div>;
+  const palette = { success: { bg: "#DCFCE7", border: C.success, txt: "#166534" }, info: { bg: C.bluePale, border: C.blue, txt: C.blue }, warn: { bg: "#FEF3C7", border: C.gold, txt: "#92400E" }, error: { bg: "#FEE2E2", border: C.red, txt: "#7F1D1D" } }[toast.type] || { bg: C.card, border: C.border, txt: C.txt };
+  return <div style={{ position: "fixed", top: 90, left: "50%", transform: "translateX(-50%)", background: palette.bg, color: palette.txt, padding: "12px 20px", borderRadius: 12, border: `1px solid ${palette.border}`, zIndex: 400, fontSize: 14, fontWeight: 700, animation: "slideUp 0.3s ease", maxWidth: "90vw", boxShadow: "0 8px 24px rgba(0,0,0,0.15)" }}>{toast.msg}</div>;
 }
 
 function Confetti() {
@@ -549,7 +555,7 @@ function FlagBadge({ name, size = 12 }) {
   const nation = findNation(name);
   if (!nation) return null;
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: C.card2, color: C.gold, fontFamily: "var(--pff2)", fontWeight: 700, fontSize: size, letterSpacing: 1, padding: "2px 6px", borderRadius: 4, border: `1px solid ${C.border}` }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: C.bluePale, color: C.blue, fontFamily: "var(--pff2)", fontWeight: 700, fontSize: size, letterSpacing: 1, padding: "2px 7px", borderRadius: 20, marginTop: 4 }}>
       <span style={{ fontSize: size + 2 }}>{nation.f}</span>
       <span>{nation.c}</span>
     </span>
@@ -558,12 +564,13 @@ function FlagBadge({ name, size = 12 }) {
 
 // Logo "26" estilitzat (el 2 apilat sobre el 6) inspirat en l'oficial Mundial 2026
 function Logo26({ size = 80, showTrophy = true }) {
-  const stripe = "linear-gradient(135deg, #c8102e 0%, #c8102e 33%, #f5c518 33%, #f5c518 66%, #1d9e75 66%, #1d9e75 100%)";
+  const stripe = "linear-gradient(135deg, #E4151B 0%, #E4151B 33%, #F5A623 33%, #F5A623 66%, #006847 66%, #006847 100%)";
+  const onBlue = !showTrophy; // hi serà sobre el header blau quan showTrophy és false
   return (
     <div style={{ display: "inline-flex", flexDirection: "column", alignItems: "center", lineHeight: 0.8, fontFamily: "var(--pff)", position: "relative" }}>
-      <span style={{ fontSize: size, color: "transparent", background: stripe, WebkitBackgroundClip: "text", backgroundClip: "text", fontWeight: 900, letterSpacing: -size * 0.05 }}>2</span>
-      <span style={{ fontSize: size, color: "transparent", background: stripe, WebkitBackgroundClip: "text", backgroundClip: "text", fontWeight: 900, marginTop: -size * 0.25, letterSpacing: -size * 0.05 }}>6</span>
-      {showTrophy && <span style={{ position: "absolute", top: size * 0.45, fontSize: size * 0.55, filter: "drop-shadow(0 0 4px rgba(245,197,24,0.5))" }}>🏆</span>}
+      <span style={{ fontSize: size, color: onBlue ? "#fff" : "transparent", background: onBlue ? "transparent" : stripe, WebkitBackgroundClip: onBlue ? "border-box" : "text", backgroundClip: onBlue ? "border-box" : "text", fontWeight: 900, letterSpacing: -size * 0.05, lineHeight: 0.85 }}>2</span>
+      <span style={{ fontSize: size, color: onBlue ? "#fff" : "transparent", background: onBlue ? "transparent" : stripe, WebkitBackgroundClip: onBlue ? "border-box" : "text", backgroundClip: onBlue ? "border-box" : "text", fontWeight: 900, marginTop: -size * 0.25, letterSpacing: -size * 0.05, lineHeight: 0.85 }}>6</span>
+      {showTrophy && <span style={{ position: "absolute", top: size * 0.45, fontSize: size * 0.55, filter: "drop-shadow(0 0 4px rgba(245,166,35,0.5))" }}>🏆</span>}
     </div>
   );
 }
@@ -590,86 +597,81 @@ function PodiumSpot({ user, rank, isMe, height }) {
 function MatchCard({ match, userBet, onBet, member }) {
   const done = match.status === "finished";
   const started = matchStarted(match) && !done;
-  const cardBg = match.spain ? "#1a0a10" : C.card;
-  // Contorn: vermell per Espanya, groc subtil per partits normals
-  const borderColor = match.spain ? C.red : "rgba(245,197,24,0.4)";
-  const borderWidth = match.spain ? 2 : 1.5;
   const cd = (!done && !started) ? countdown(match.date) : null;
-
-  // Text clar de l'aposta: "Espanya guanya" / "Empat" + marcador
   const betOutcomeText = userBet ? (userBet.outcome === "H" ? `${match.home} guanya` : userBet.outcome === "A" ? `${match.away} guanya` : "Empat") : "";
+  const accentColor = match.spain ? C.red : (done && userBet?.settled) ? (userBet.payout > 0 ? C.success : C.muted) : userBet ? C.gold : C.blue;
 
   return (
-    <div style={{ background: cardBg, borderRadius: 14, padding: 16, marginBottom: 12, border: `${borderWidth}px solid ${borderColor}`, position: "relative", overflow: "hidden" }}>
-      {match.spain && <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 6, flexWrap: "wrap" }}>
-        <span style={{ fontFamily: "var(--pff2)", fontSize: 12, color: C.muted, letterSpacing: 2, fontWeight: 600 }}>{match.league}{match.date ? ` · ${fmtDate(match.date)}` : ""}</span>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {match.spain && <Chip color={C.red} bg="#3a0814" border={C.red}>🇪🇸 ESPANYA</Chip>}
-          {done ? <Chip color={C.muted} bg={C.card2}>FINALITZAT</Chip> : started ? <LockedChip /> : <Chip color={C.green} bg="#0d1f00">● OBERT</Chip>}
-        </div>
-      </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 5 }}>
-          <span style={{ fontFamily: "var(--pff)", fontSize: 26, color: C.txt, letterSpacing: 1, lineHeight: 1, textAlign: "right" }}>{match.home}</span>
-          <FlagBadge name={match.home} size={13} />
-        </div>
-        <div style={{ minWidth: 60, textAlign: "center" }}>
-          {match.result ? <span style={{ fontFamily: "var(--pff)", fontSize: 32, color: C.gold }}>{match.result.home}–{match.result.away}</span> : <span style={{ fontFamily: "var(--pff2)", fontSize: 15, color: C.muted, fontWeight: 700 }}>VS</span>}
-        </div>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 5 }}>
-          <span style={{ fontFamily: "var(--pff)", fontSize: 26, color: C.txt, letterSpacing: 1, lineHeight: 1, textAlign: "left" }}>{match.away}</span>
-          <FlagBadge name={match.away} size={13} />
-        </div>
-      </div>
-      {cd && (
-        <div style={{ textAlign: "center", marginBottom: 12 }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: cd.urgent ? "#3a0814" : C.card2, color: cd.urgent ? C.red : C.muted, fontFamily: "var(--pff2)", fontSize: 12, fontWeight: 700, letterSpacing: 1, padding: "4px 12px", borderRadius: 12, border: cd.urgent ? `1px solid ${C.red}` : "none", animation: cd.urgent ? "pulse 2s ease-in-out infinite" : "none" }}>
-            ⏱ TANCA EN {cd.text}
-          </span>
-        </div>
-      )}
-      {!done && !started && (
-        <div style={{ display: "flex", gap: 6, marginBottom: 12 }}>
-          {[["H", match.home], ["D", "Empat"], ["A", match.away]].map(([k, lbl]) => (
-            <div key={k} style={{ flex: 1, background: C.card2, padding: "9px 4px", borderRadius: 8, textAlign: "center" }}>
-              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 1, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", marginBottom: 3, fontWeight: 600 }}>{lbl}</div>
-              <Cuota value={match.cuotas[k]} />
-            </div>
-          ))}
-        </div>
-      )}
-      {userBet && (
-        <div style={{ background: "rgba(245,197,24,0.07)", border: "1px solid rgba(245,197,24,0.25)", borderRadius: 10, padding: "12px 14px", marginBottom: 12 }}>
-          <div style={{ color: C.muted, fontSize: 11, fontFamily: "var(--pff2)", letterSpacing: 2, fontWeight: 600, marginBottom: 6 }}>LA TEVA PORRA</div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: "var(--pff)", fontSize: 20, color: C.txt, letterSpacing: 0.5 }}>{betOutcomeText}</span>
-            {userBet.exactScore && <span style={{ background: C.card2, color: C.gold, fontFamily: "var(--pff)", fontSize: 16, padding: "2px 10px", borderRadius: 6 }}>{userBet.exactScore.replace("-", "–")} ⭐</span>}
-            <span style={{ marginLeft: "auto", fontFamily: "var(--pff)", fontSize: 20, color: C.gold }}>{userBet.amount}🍺</span>
+    <div style={{ background: C.card, borderRadius: 16, marginBottom: 10, boxShadow: "0 2px 12px rgba(0,0,0,0.06)", display: "flex", overflow: "hidden" }}>
+      <div style={{ width: 4, background: accentColor, flexShrink: 0 }} />
+      <div style={{ flex: 1, padding: "14px 14px 14px 12px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, flexWrap: "wrap", gap: 4 }}>
+          <span style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 1.5, fontWeight: 700 }}>{match.league}{match.date ? ` · ${fmtDate(match.date)}` : ""}</span>
+          <div style={{ display: "flex", gap: 5 }}>
+            {match.spain && <span style={{ background: "#FEE2E2", color: C.red, fontFamily: "var(--pff2)", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>🇪🇸 ESPANYA</span>}
+            {done ? <span style={{ background: C.bg, color: C.muted, fontFamily: "var(--pff2)", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>✓ FINALITZAT</span> : started ? <span style={{ background: "#FEE2E2", color: C.red, fontFamily: "var(--pff2)", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20, animation: "pulse 1.5s infinite" }}>🔴 EN JOC</span> : <span style={{ background: "#DCFCE7", color: C.green, fontFamily: "var(--pff2)", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>🟢 OBERT</span>}
           </div>
-          {userBet.settled && (
-            <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ color: C.muted, fontSize: 13 }}>Resultat</span>
-              <span style={{ fontFamily: "var(--pff)", fontSize: 22, color: userBet.payout > 0 ? C.green : C.red }}>
-                {userBet.payout > 0 ? `+${userBet.payout - userBet.amount}🍺 ✓` : `−${userBet.amount}🍺 ✗`}
-              </span>
-            </div>
-          )}
         </div>
-      )}
-      {!done && !started && onBet && (
-        <button onClick={() => onBet(match)} disabled={member.birras < 1}
-          style={{ width: "100%", background: "transparent", color: member.birras < 1 ? C.muted : C.gold, border: `1px solid ${member.birras < 1 ? C.border : "rgba(245,197,24,0.6)"}`, borderRadius: 10, padding: "12px", fontFamily: "var(--pff)", fontSize: 17, letterSpacing: 2, cursor: member.birras < 1 ? "not-allowed" : "pointer" }}>
-          {userBet ? "✏️ EDITAR PORRA" : "⚽ FER PORRA"}
-        </button>
-      )}
-      {started && !userBet && <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 6 }}>🔒 El partit ha començat</div>}
-      {done && !userBet && <div style={{ color: C.muted, fontSize: 13, textAlign: "center", padding: 6 }}>No hi vas participar</div>}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+          <div style={{ flex: 1, textAlign: "right" }}>
+            <div style={{ fontFamily: "var(--pff)", fontSize: 24, color: C.txt, letterSpacing: 1, lineHeight: 1 }}>{match.home}</div>
+            <FlagBadge name={match.home} size={11} />
+          </div>
+          <div style={{ minWidth: 56, textAlign: "center" }}>
+            {match.result
+              ? <div style={{ background: C.txt, borderRadius: 8, padding: "3px 10px", display: "inline-block" }}><span style={{ fontFamily: "var(--pff)", fontSize: 24, color: "#fff", letterSpacing: 2 }}>{match.result.home}–{match.result.away}</span></div>
+              : <span style={{ fontFamily: "var(--pff2)", fontSize: 13, color: C.muted, fontWeight: 700 }}>VS</span>}
+          </div>
+          <div style={{ flex: 1, textAlign: "left" }}>
+            <div style={{ fontFamily: "var(--pff)", fontSize: 24, color: C.txt, letterSpacing: 1, lineHeight: 1 }}>{match.away}</div>
+            <FlagBadge name={match.away} size={11} />
+          </div>
+        </div>
+        {cd && (
+          <div style={{ marginBottom: 10 }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 4, background: cd.urgent ? "#FEE2E2" : C.bg, color: cd.urgent ? C.red : C.muted, fontFamily: "var(--pff2)", fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, animation: cd.urgent ? "pulse 1.5s infinite" : "none" }}>⏱ Tanca en {cd.text}</span>
+          </div>
+        )}
+        {!done && !started && (
+          <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+            {[["H", match.home], ["D", "Empat"], ["A", match.away]].map(([k, lbl]) => (
+              <div key={k} style={{ flex: 1, background: C.bluePale, borderRadius: 10, padding: "8px 4px", textAlign: "center" }}>
+                <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 0.5, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", marginBottom: 3, fontWeight: 600 }}>{lbl}</div>
+                <div style={{ fontFamily: "var(--pff)", fontSize: 22, color: C.blue }}>{match.cuotas[k]?.toFixed(2)}</div>
+              </div>
+            ))}
+          </div>
+        )}
+        {userBet && (
+          <div style={{ background: C.bluePale, border: `1px solid #C7D5F3`, borderRadius: 10, padding: "10px 12px", marginBottom: 10 }}>
+            <div style={{ fontFamily: "var(--pff2)", fontSize: 9, color: C.blue, letterSpacing: 2, fontWeight: 700, marginBottom: 5 }}>LA TEVA PORRA</div>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                <span style={{ fontFamily: "var(--pff2)", fontSize: 14, fontWeight: 700, color: C.txt }}>{betOutcomeText}</span>
+                {userBet.exactScore && <span style={{ background: C.gold, color: "#fff", fontFamily: "var(--pff2)", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 20 }}>{userBet.exactScore.replace("-","–")} ⭐</span>}
+              </div>
+              <span style={{ fontFamily: "var(--pff)", fontSize: 22, color: C.blue }}>{userBet.amount}🍺</span>
+            </div>
+            {userBet.settled && (
+              <div style={{ marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ fontSize: 12, color: C.muted, fontWeight: 600 }}>Resultat</span>
+                <span style={{ fontFamily: "var(--pff)", fontSize: 22, color: userBet.payout > 0 ? C.success : C.red }}>{userBet.payout > 0 ? `+${userBet.payout - userBet.amount}🍺 ✓` : `−${userBet.amount}🍺 ✗`}</span>
+              </div>
+            )}
+          </div>
+        )}
+        {!done && !started && onBet && (
+          <button onClick={() => onBet(match)} disabled={member.birras < 1}
+            style={{ width: "100%", background: "transparent", color: member.birras < 1 ? C.muted : C.blue, border: `1.5px solid ${member.birras < 1 ? C.border : C.blue}`, borderRadius: 10, padding: "11px", fontFamily: "var(--pff2)", fontSize: 14, fontWeight: 700, letterSpacing: 1, cursor: member.birras < 1 ? "not-allowed" : "pointer" }}>
+            {userBet ? "✏️ Editar porra" : "⚽ Fer porra"}
+          </button>
+        )}
+        {started && !userBet && <div style={{ color: C.muted, fontSize: 12, textAlign: "center", padding: 4, fontWeight: 600 }}>🔒 El partit ha começat</div>}
+        {done && !userBet && <div style={{ color: C.muted, fontSize: 12, textAlign: "center", padding: 4, fontWeight: 600 }}>No hi vas participar</div>}
+      </div>
     </div>
   );
 }
-
-// ─────────────────────────── 9. BET MODAL ─────────────────────────────────
 function BetModal({ match, member, existing, jokerAvailable, onSubmit, onClose }) {
   const [outcome, setOutcome] = useState(existing?.outcome || "H");
   const [exactH, setExactH] = useState(existing?.exactScore?.split("-")[0] ?? "");
@@ -709,7 +711,7 @@ function BetModal({ match, member, existing, jokerAvailable, onSubmit, onClose }
             const sel = outcome === k;
             const c = match.cuotas[k];
             return (
-              <button key={k} onClick={() => setOutcome(k)} style={{ flex: 1, padding: 14, borderRadius: 10, border: `2px solid ${sel ? C.gold : C.border}`, background: sel ? "#2a1d00" : C.card2, cursor: "pointer", textAlign: "center" }}>
+              <button key={k} onClick={() => setOutcome(k)} style={{ flex: 1, padding: 14, borderRadius: 10, border: `2px solid ${sel ? C.gold : C.border}`, background: sel ? C.bluePale : C.card2, cursor: "pointer", textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: C.muted, fontFamily: "var(--pff2)", letterSpacing: 1, marginBottom: 6, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap", fontWeight: 600 }}>{lbl}</div>
                 <Cuota value={c} big />
               </button>
@@ -812,7 +814,7 @@ function EspanyaModal({ match, currentPot, carryPot, member, existing, onSubmit,
         )}
 
         {/* Pot acumulat */}
-        <div style={{ background: "linear-gradient(135deg,#3a0820,#180510)", borderRadius: 14, padding: 16, marginBottom: 14, textAlign: "center", border: `1px solid ${C.red}` }}>
+        <div style={{ background: "linear-gradient(135deg,'#FEE2E2','#FCA5A5')", borderRadius: 14, padding: 16, marginBottom: 14, textAlign: "center", border: `1px solid ${C.red}` }}>
           <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.red, letterSpacing: 3, fontWeight: 600 }}>POT TOTAL EN JOC</div>
           <div style={{ fontFamily: "var(--pff)", fontSize: 52, color: C.gold, lineHeight: 1, marginTop: 4 }}>{currentPot + carryPot}🍺</div>
           {carryPot > 0 && <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>({carryPot}🍺 acumulats + {currentPot}🍺 d'aquest partit)</div>}
@@ -912,7 +914,7 @@ function CoinFlipModal({ member, current, onPlay, onCashout, onClose }) {
             <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
               {["cara", "creu"].map(c => (
                 <button key={c} onClick={() => canStart && flipCoin(c)} disabled={!canStart || flipping}
-                  style={{ flex: 1, padding: 18, borderRadius: 12, background: picked === c ? C.amber : C.card2, color: picked === c ? "#0c0900" : C.txt, border: `2px solid ${picked === c ? C.gold : C.border}`, fontFamily: "var(--pff)", fontWeight: 900, fontSize: 22, letterSpacing: 2, cursor: canStart && !flipping ? "pointer" : "not-allowed", opacity: !canStart ? 0.4 : 1 }}>
+                  style={{ flex: 1, padding: 18, borderRadius: 12, background: picked === c ? C.amber : C.card2, color: picked === c ? "#FFFFFF" : C.txt, border: `2px solid ${picked === c ? C.gold : C.border}`, fontFamily: "var(--pff)", fontWeight: 900, fontSize: 22, letterSpacing: 2, cursor: canStart && !flipping ? "pointer" : "not-allowed", opacity: !canStart ? 0.4 : 1 }}>
                   {c === "cara" ? "🟡 CARA" : "⚪ CREU"}
                 </button>
               ))}
@@ -940,7 +942,7 @@ function CoinFlipModal({ member, current, onPlay, onCashout, onClose }) {
                 <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
                   {["cara", "creu"].map(c => (
                     <button key={c} onClick={() => flipCoin(c)} disabled={flipping}
-                      style={{ flex: 1, padding: 18, borderRadius: 12, background: picked === c ? C.amber : C.card2, color: picked === c ? "#0c0900" : C.txt, border: `2px solid ${picked === c ? C.gold : C.border}`, fontFamily: "var(--pff)", fontWeight: 900, fontSize: 18, letterSpacing: 1, cursor: flipping ? "not-allowed" : "pointer" }}>
+                      style={{ flex: 1, padding: 18, borderRadius: 12, background: picked === c ? C.amber : C.card2, color: picked === c ? "#FFFFFF" : C.txt, border: `2px solid ${picked === c ? C.gold : C.border}`, fontFamily: "var(--pff)", fontWeight: 900, fontSize: 18, letterSpacing: 1, cursor: flipping ? "not-allowed" : "pointer" }}>
                       DOBLAR<br />{c === "cara" ? "🟡 CARA" : "⚪ CREU"}
                     </button>
                   ))}
@@ -1068,7 +1070,7 @@ function AdminPanel({ data, handlers, onClose }) {
         </select>
         <div style={{ display: "flex", gap: 4, marginBottom: 16, overflowX: "auto" }}>
           {tabs.map(([id, l]) => (
-            <button key={id} onClick={() => setTab(id)} style={{ flexShrink: 0, padding: "9px 14px", borderRadius: 8, border: "none", background: tab === id ? C.gold : C.card2, color: tab === id ? "#0c0900" : C.muted, fontFamily: "var(--pff)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{l}</button>
+            <button key={id} onClick={() => setTab(id)} style={{ flexShrink: 0, padding: "9px 14px", borderRadius: 8, border: "none", background: tab === id ? C.gold : C.card2, color: tab === id ? "#FFFFFF" : C.muted, fontFamily: "var(--pff)", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{l}</button>
           ))}
         </div>
 
@@ -1120,7 +1122,7 @@ function AdminPanel({ data, handlers, onClose }) {
               <input type="checkbox" checked={nm.applyToAllGroups} onChange={e => setNm(p => ({ ...p, applyToAllGroups: e.target.checked }))} style={{ accentColor: C.green, width: 18, height: 18 }} />
               <div><div style={{ fontFamily: "var(--pff)", fontSize: 16, color: C.green, letterSpacing: 1 }}>🌐 AFEGIR A TOTS ELS GRUPS</div><div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>El partit es crearà a tots els grups existents ({groups.length}). Si desactives, només al grup seleccionat.</div></div>
             </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#2a0a14", padding: 12, borderRadius: 8, cursor: "pointer", border: `1px solid ${C.red}` }}>
+            <label style={{ display: "flex", alignItems: "center", gap: 10, background: "#FEE2E2", padding: 12, borderRadius: 8, cursor: "pointer", border: `1px solid ${C.red}` }}>
               <input type="checkbox" checked={nm.spain} onChange={e => setNm(p => ({ ...p, spain: e.target.checked }))} style={{ accentColor: C.red, width: 18, height: 18 }} />
               <div><div style={{ fontFamily: "var(--pff)", fontSize: 16, color: C.red, letterSpacing: 1 }}>🇪🇸 PARTIT D'ESPANYA</div><div style={{ fontSize: 11, color: C.muted, marginTop: 2 }}>Compta pel Jackpot Selecció Espanyola</div></div>
             </label>
@@ -1128,7 +1130,7 @@ function AdminPanel({ data, handlers, onClose }) {
 
             <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 8, paddingTop: 14 }}>
               <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, marginBottom: 8, fontWeight: 600 }}>SNACK RÀPID</div>
-              <button onClick={prefillSpain} style={{ ...sty.btnGhost, width: "100%", background: "#2a0a14", color: C.red, border: `1px solid ${C.red}` }}>
+              <button onClick={prefillSpain} style={{ ...sty.btnGhost, width: "100%", background: "#FEE2E2", color: C.red, border: `1px solid ${C.red}` }}>
                 🇪🇸 PRECARREGAR PARTITS D'ESPANYA (FASE DE GRUPS)
               </button>
               <div style={{ fontSize: 10, color: C.muted, marginTop: 6, lineHeight: 1.5 }}>Afegeix els 3 partits: Espanya–Cap Verd (15/6), Espanya–Aràbia Saudí (21/6) i Espanya–Uruguai (26/6). Marcats com a partit d'Espanya.</div>
@@ -1142,7 +1144,7 @@ function AdminPanel({ data, handlers, onClose }) {
               pending.map(m => (
                 <div key={m.id} style={{ ...sty.card, marginBottom: 10 }}>
                   <div style={{ display: "flex", gap: 4, marginBottom: 6, flexWrap: "wrap" }}>
-                    {m.spain && <Chip color={C.red} bg="#3a0814" border={C.red}>🇪🇸 ESPANYA</Chip>}
+                    {m.spain && <Chip color={C.red} bg="#FEE2E2" border={C.red}>🇪🇸 ESPANYA</Chip>}
                   </div>
                   <div style={{ fontFamily: "var(--pff)", fontWeight: 700, fontSize: 16, marginBottom: 8, color: C.txt }}>{m.home} vs {m.away}</div>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
@@ -1273,7 +1275,7 @@ export default function App() {
     link.href = "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap";
     document.head.appendChild(link);
     const s = document.createElement("style");
-    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(380px) rotate(720deg);opacity:0}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#e4151b 0%,#e4151b 33%,#009a5b 33%,#009a5b 66%,#0038a8 66%,#0038a8 100%);height:3px;width:100%}.hosts-stripe{background:linear-gradient(90deg,#e4151b,#009a5b,#0038a8);height:4px;width:100%}`;
+    s.textContent = `:root{--pff:'Bebas Neue',sans-serif;--pff2:'Oswald',sans-serif}*{box-sizing:border-box;margin:0;padding:0}body{background:${C.bg};font-family:'Inter',sans-serif;color:${C.txt};-webkit-tap-highlight-color:transparent}.card-shadow{box-shadow:0 2px 12px rgba(0,0,0,0.07)}input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}@keyframes fadeIn{from{opacity:0}to{opacity:1}}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes foam{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}@keyframes flagShine{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(380px) rotate(720deg);opacity:0}}button:active{transform:scale(0.97)}.mundial-stripe{background:linear-gradient(90deg,#E4151B 0%,#E4151B 33%,#006847 33%,#006847 66%,#003DA5 66%,#003DA5 100%);height:4px;width:100%}.hosts-stripe{background:linear-gradient(90deg,#e4151b,#009a5b,#0038a8);height:4px;width:100%}`;
     document.head.appendChild(s);
     const loadShared = async () => {
       // 1 SOLA petició: recarrega el document sencer i reparteix les claus
@@ -2023,93 +2025,104 @@ export default function App() {
   // Normes automàtiques: si el membre encara no les ha vist, mostrar-les sí o sí
   if (member && !member.seenWelcome) return <RulesScreen firstTime onClose={markSeenWelcome} />;
 
-  const headerStat = (label, value, color = C.gold) => (
+  const headerStat = (label, value, color = C.blue) => (
     <div style={{ flex: 1, textAlign: "center" }}>
-      <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 22, color, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontSize: 9, color: C.muted, fontFamily: "var(--pff)", letterSpacing: 1, marginTop: 3 }}>{label}</div>
+      <div style={{ fontFamily: "var(--pff)", fontSize: 26, color, lineHeight: 1 }}>{value}</div>
+      <div style={{ fontSize: 9, color: C.muted, fontFamily: "var(--pff2)", letterSpacing: 1.5, marginTop: 4, fontWeight: 700 }}>{label}</div>
     </div>
   );
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, color: C.txt, maxWidth: 480, margin: "0 auto", paddingBottom: 80 }}>
       {/* HEADER */}
-      <div style={{ background: C.card, borderBottom: `1px solid ${C.border}`, padding: "10px 14px", display: "flex", alignItems: "center", justifyContent: "space-between", position: "sticky", top: 0, zIndex: 50 }}>
-        <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Logo26 size={28} showTrophy={false} />
-          <div>
-            <div style={{ fontFamily: "var(--pff)", fontSize: 20, color: C.gold, lineHeight: 1, letterSpacing: 2 }}>BIRRAPORRA</div>
-            <div style={{ fontFamily: "var(--pff2)", fontSize: 9, color: C.muted, marginTop: 2, letterSpacing: 2, fontWeight: 600 }}>{currentGroup?.name} · {account.emoji || "🍺"} {account.name}</div>
+      {/* HEADER BLAU FIFA */}
+      <div style={{ background: C.hdr, position: "sticky", top: 0, zIndex: 50, boxShadow: "0 2px 12px rgba(0,61,165,0.25)" }}>
+        <div className="mundial-stripe" />
+        {/* Fila superior: logo + nom + admin */}
+        <div style={{ padding: "12px 16px 10px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Logo26 size={30} showTrophy={false} />
+            <div>
+              <div style={{ fontFamily: "var(--pff)", fontSize: 22, color: "#fff", lineHeight: 1, letterSpacing: 2 }}>BIRRAPORRA</div>
+              <div style={{ fontSize: 9, color: "rgba(255,255,255,0.5)", letterSpacing: 2, fontWeight: 600, marginTop: 1 }}>WE ARE 26 · {currentGroup?.name}</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {adminMode && <button onClick={() => setShowAdmin(true)} style={{ background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: "5px 12px", fontSize: 11, fontFamily: "var(--pff2)", fontWeight: 700, cursor: "pointer", letterSpacing: 1 }}>🛠 ADMIN</button>}
+            <div style={{ background: "rgba(255,255,255,0.12)", padding: "6px 14px", borderRadius: 20, display: "flex", alignItems: "center", gap: 5, border: "1px solid rgba(255,255,255,0.15)" }}>
+              <span style={{ fontFamily: "var(--pff)", fontSize: 20, color: member.birras > 0 ? C.gold : C.red, lineHeight: 1 }}>{member.birras}</span>
+              <span style={{ fontSize: 16 }}>🍺</span>
+            </div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          {adminMode && <button onClick={() => setShowAdmin(true)} style={{ background: C.amber, color: "#0c0900", border: "none", borderRadius: 6, padding: "4px 10px", fontSize: 11, fontFamily: "var(--pff)", fontWeight: 700, cursor: "pointer" }}>ADMIN</button>}
-          <div style={{ background: C.card2, padding: "5px 12px", borderRadius: 20, display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 17, color: member.birras > 0 ? C.gold : C.red }}>{member.birras}</span>
-            <span style={{ fontSize: 14 }}>🍺</span>
+        {/* Fila inferior: usuari + posició */}
+        <div style={{ padding: "0 16px 12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ fontSize: 18 }}>{account.emoji || "🍺"}</span>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", fontWeight: 600 }}>{account.name}</span>
           </div>
+          {myRank > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "rgba(255,255,255,0.1)", padding: "4px 12px", borderRadius: 20 }}>
+              <span style={{ fontSize: 12 }}>{["🥇","🥈","🥉"][myRank-1] || "🏅"}</span>
+              <span style={{ fontFamily: "var(--pff)", fontSize: 16, color: "#fff" }}>{myRank}r del ranking</span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div style={{ padding: 14, animation: "fadeIn 0.3s ease" }}>
+      <div style={{ padding: "14px 14px 0", animation: "fadeIn 0.3s ease" }}>
 
         {/* ─── PARTITS ─── */}
         {tab === "matches" && (
           <div>
-            {/* Birres disponibles — protagonista */}
-            <div style={{ background: C.card, borderRadius: 16, padding: "16px", marginBottom: 12, border: `2px solid ${member.birras > 0 ? C.gold : C.red}`, position: "relative", overflow: "hidden", textAlign: "center" }}>
-              <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
-              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 3, fontWeight: 600, marginBottom: 2 }}>LES TEVES BIRRES</div>
-              <div style={{ fontFamily: "var(--pff)", fontSize: 64, color: member.birras > 0 ? C.gold : C.red, lineHeight: 1 }}>{member.birras}<span style={{ fontSize: 36 }}>🍺</span></div>
-            </div>
             {/* Stats secundàries */}
-            <div style={{ background: C.card, borderRadius: 12, padding: "10px 14px", marginBottom: 12, display: "flex", border: `1px solid ${C.border}` }}>
-              {headerStat("POSICIÓ", myRank ? `${myRank}r` : "—", C.gold)}
+            <div className="card-shadow" style={{ background: C.card, borderRadius: 12, padding: "12px 8px", marginBottom: 12, display: "flex" }}>
+              {headerStat("POSICIÓ", myRank ? `${myRank}r` : "—", C.blue)}
               <div style={{ width: 1, background: C.border }} />
-              {headerStat("ENCERTS", `${myBets.filter(b => b.payout > 0).length}`, C.green)}
+              {headerStat("ENCERTS", `${myBets.filter(b => b.payout > 0).length}`, C.success)}
               <div style={{ width: 1, background: C.border }} />
               {headerStat("PARTITS", `${myBets.length}`, C.muted)}
             </div>
 
             {/* DASHBOARD: pròxim partit + jackpot */}
-            <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 8, marginBottom: 14 }}>
               {(() => {
                 const next = bettableMatches[0];
                 const cd = next ? countdown(next.date) : null;
                 return (
-                  <div onClick={() => next && setBetMatch(next)} style={{ flex: 2, background: C.card, border: `1px solid ${C.border}`, borderRadius: 12, padding: "12px 14px", cursor: next ? "pointer" : "default" }}>
-                    <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, fontWeight: 600, marginBottom: 4 }}>⚽ PRÒXIM PARTIT</div>
+                  <div onClick={() => next && setBetMatch(next)} className="card-shadow" style={{ background: C.card, borderRadius: 12, padding: "12px 14px", cursor: next ? "pointer" : "default" }}>
+                    <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, fontWeight: 700, marginBottom: 5 }}>⚽ PRÒXIM PARTIT</div>
                     {next ? (<>
-                      <div style={{ fontFamily: "var(--pff)", fontSize: 18, color: C.txt, lineHeight: 1.1 }}>{teamCode(next.home) || next.home} – {teamCode(next.away) || next.away}</div>
-                      {cd && <div style={{ fontSize: 11, color: cd.urgent ? C.red : C.amber, marginTop: 3, fontWeight: 600 }}>⏱ {cd.text}</div>}
+                      <div style={{ fontFamily: "var(--pff)", fontSize: 18, color: C.txt, lineHeight: 1.1, letterSpacing: 1 }}>{teamCode(next.home) || next.home} – {teamCode(next.away) || next.away}</div>
+                      {cd && <div style={{ fontSize: 11, color: cd.urgent ? C.red : C.blue, marginTop: 4, fontWeight: 700 }}>⏱ {cd.text}</div>}
                     </>) : <div style={{ fontSize: 13, color: C.muted }}>Cap de moment</div>}
                   </div>
                 );
               })()}
-              <div onClick={() => espanyaActiveMatch && setTab("jackpot")} style={{ flex: 1, background: "#1a0a10", border: `1px solid ${C.red}`, borderRadius: 12, padding: "12px 14px", cursor: "pointer", textAlign: "center" }}>
-                <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.red, letterSpacing: 1, fontWeight: 600, marginBottom: 4 }}>🇪🇸 POT</div>
-                <div style={{ fontFamily: "var(--pff)", fontSize: 26, color: C.gold, lineHeight: 1 }}>{espanyaCurrentPot + espanyaCarryPot}🍺</div>
+              <div onClick={() => setTab("jackpot")} style={{ background: C.blue, borderRadius: 12, padding: "12px 10px", cursor: "pointer", textAlign: "center", boxShadow: "0 4px 14px rgba(0,61,165,0.2)" }}>
+                <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: "rgba(255,255,255,0.5)", letterSpacing: 2, fontWeight: 700, marginBottom: 4 }}>🇪🇸 POT</div>
+                <div style={{ fontFamily: "var(--pff)", fontSize: 28, color: "#fff", lineHeight: 1 }}>{espanyaCurrentPot + espanyaCarryPot}🍺</div>
               </div>
             </div>
 
             {/* Selector Oberts / En joc / Finalitzats */}
-            <div style={{ display: "flex", background: C.card2, borderRadius: 10, padding: 3, gap: 2, marginBottom: 14 }}>
+            <div style={{ display: "flex", background: C.border, borderRadius: 12, padding: 3, gap: 2, marginBottom: 14 }}>
               {[
                 { id: "open", label: `🟢 Oberts (${bettableMatches.length})` },
                 { id: "live", label: `🔴 En joc (${liveMatches.length})` },
-                { id: "done", label: `✓ Finalitzats (${finishedMatches.length})` },
+                { id: "done", label: `✓ Fets (${finishedMatches.length})` },
               ].map(s => (
                 <button key={s.id} onClick={() => setMatchSection(s.id)}
-                  style={{ flex: 1, padding: "8px 2px", background: matchSection === s.id ? C.red : "transparent", color: matchSection === s.id ? "#fff" : C.muted, border: "none", borderRadius: 8, fontFamily: "var(--pff2)", fontSize: 10, letterSpacing: 0.5, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  style={{ flex: 1, padding: "9px 2px", background: matchSection === s.id ? C.blue : "transparent", color: matchSection === s.id ? "#fff" : C.muted, border: "none", borderRadius: 9, fontFamily: "var(--pff2)", fontSize: 11, letterSpacing: 0.3, fontWeight: 700, cursor: "pointer", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", boxShadow: matchSection === s.id ? "0 2px 8px rgba(0,61,165,0.3)" : "none" }}>
                   {s.label}
                 </button>
               ))}
             </div>
 
             {member.birras < 1 && matchSection === "open" && (
-              <div style={{ background: "#200000", borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${C.red}`, textAlign: "center" }}>
+              <div style={{ background: "#FEE2E2", borderRadius: 12, padding: 14, marginBottom: 14, border: `1px solid ${C.red}`, textAlign: "center" }}>
                 <div style={{ fontFamily: "var(--pff)", fontSize: 20, color: C.red, letterSpacing: 1 }}>⚠ SENSE BIRRES</div>
-                <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Parla amb l'admin per recarregar.</div>
+                <div style={{ fontSize: 12, color: "#7f1d1d", marginTop: 2 }}>Parla amb l'admin per recarregar.</div>
               </div>
             )}
 
@@ -2133,11 +2146,11 @@ export default function App() {
 
                 {/* HAS APOSTAT */}
                 {myBetted.length > 0 && (<>
-                  <div style={{ fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 13, color: C.gold, letterSpacing: 2, marginBottom: 10, paddingLeft: 4, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 18, height: 2, background: C.gold, opacity: 0.6 }} />
-                    🎯 HAS APOSTAT
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingLeft: 4 }}>
+                    <span style={{ width: 6, height: 6, background: C.gold, borderRadius: "50%" }} />
+                    <span style={{ fontFamily: "var(--pff)", fontSize: 15, color: C.gold, letterSpacing: 2 }}>🎯 HAS APOSTAT</span>
                     <span style={{ flex: 1, height: 1, background: C.border }} />
-                    <span style={{ color: C.muted, fontSize: 12 }}>{myBetted.length}</span>
+                    <span style={{ color: C.muted, fontSize: 12, fontWeight: 700 }}>{myBetted.length}</span>
                   </div>
                   {myBetted.map(m => <MatchCard key={m.id} match={m} userBet={myBets.find(b => b.matchId === m.id)} onBet={setBetMatch} member={member} />)}
                   <div style={{ height: 18 }} />
@@ -2145,16 +2158,16 @@ export default function App() {
 
                 {/* POTS APOSTAR */}
                 {notBetted.length > 0 && (<>
-                  <div style={{ fontFamily: "var(--pff2)", fontWeight: 700, fontSize: 13, color: C.amber, letterSpacing: 2, marginBottom: 10, paddingLeft: 4, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 18, height: 2, background: C.amber, opacity: 0.6 }} />
-                    POTS APOSTAR
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, paddingLeft: 4 }}>
+                    <span style={{ width: 6, height: 6, background: C.blue, borderRadius: "50%" }} />
+                    <span style={{ fontFamily: "var(--pff)", fontSize: 15, color: C.blue, letterSpacing: 2 }}>POTS APOSTAR</span>
                     <span style={{ flex: 1, height: 1, background: C.border }} />
-                    <span style={{ color: C.muted, fontSize: 12 }}>{notBetted.length}</span>
+                    <span style={{ color: C.muted, fontSize: 12, fontWeight: 700 }}>{notBetted.length}</span>
                   </div>
                   {notBettedLeagues.map(lg => (
                     <div key={lg} style={{ marginBottom: 14 }}>
                       {notBettedLeagues.length > 1 && (
-                        <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 1.5, marginBottom: 6, paddingLeft: 4, fontWeight: 600 }}>{lg.toUpperCase()}</div>
+                        <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 1.5, marginBottom: 6, paddingLeft: 4, fontWeight: 700 }}>{lg.toUpperCase()}</div>
                       )}
                       {notBettedByLeague[lg].map(m => <MatchCard key={m.id} match={m} userBet={null} onBet={setBetMatch} member={member} />)}
                     </div>
@@ -2184,7 +2197,7 @@ export default function App() {
                   { id: "no_bet", label: "Sense aposta" },
                 ].map(f => (
                   <button key={f.id} onClick={() => setDoneFilter(f.id)}
-                    style={{ flex: 1, padding: "6px 2px", background: doneFilter === f.id ? C.gold : C.card2, color: doneFilter === f.id ? "#000" : C.muted, border: `1px solid ${doneFilter === f.id ? C.gold : C.border}`, borderRadius: 8, fontFamily: "var(--pff2)", fontSize: 10, fontWeight: 700, cursor: "pointer" }}>
+                    style={{ flex: 1, padding: "7px 2px", background: doneFilter === f.id ? C.blue : C.bluePale, color: doneFilter === f.id ? "#fff" : C.blue, border: "none", borderRadius: 8, fontFamily: "var(--pff2)", fontSize: 10, fontWeight: 700, cursor: "pointer", letterSpacing: 0.3 }}>
                     {f.label}
                   </button>
                 ))}
@@ -2209,14 +2222,14 @@ export default function App() {
         {tab === "jackpot" && (
           <div>
             {/* Banner principal — pot total */}
-            <div style={{ background: "linear-gradient(135deg, #4a0a14, #180510 70%)", borderRadius: 16, padding: 22, marginBottom: 16, textAlign: "center", border: `2px solid ${C.red}`, position: "relative", overflow: "hidden" }}>
+            <div style={{ background: C.red, borderRadius: 16, padding: 24, marginBottom: 16, textAlign: "center", position: "relative", overflow: "hidden", boxShadow: "0 8px 24px rgba(228,21,27,0.25)" }}>
               <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
               <div style={{ fontSize: 36, marginBottom: 4 }}>🇪🇸</div>
-              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.red, letterSpacing: 3, marginBottom: 2, fontWeight: 600 }}>JACKPOT SELECCIÓ ESPANYOLA</div>
-              <div style={{ fontSize: 10, color: C.muted, marginBottom: 14 }}>Resultat exacte · qui encerta s'ho endú TOT</div>
-              <div style={{ fontFamily: "var(--pff)", fontSize: 64, color: C.gold, lineHeight: 1, animation: "pulse 3s ease-in-out infinite" }}>{espanyaCurrentPot + espanyaCarryPot}🍺</div>
+              <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: "rgba(255,255,255,0.8)", letterSpacing: 3, marginBottom: 2, fontWeight: 700 }}>JACKPOT SELECCIÓ ESPANYOLA</div>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.65)", marginBottom: 14 }}>Resultat exacte · qui l'encerta s'ho endú TOT</div>
+              <div style={{ fontFamily: "var(--pff)", fontSize: 70, color: "#fff", lineHeight: 1, animation: "pulse 3s ease-in-out infinite" }}>{espanyaCurrentPot + espanyaCarryPot}🍺</div>
               {espanyaCarryPot > 0 && (
-                <div style={{ fontSize: 11, color: C.amber, marginTop: 6 }}>
+                <div style={{ fontSize: 11, color: "rgba(255,255,255,0.75)", marginTop: 8 }}>
                   ({espanyaCarryPot}🍺 acumulats + {espanyaCurrentPot}🍺 d'aquest partit)
                 </div>
               )}
@@ -2224,38 +2237,55 @@ export default function App() {
 
             {espanyaActiveMatch ? (
               <>
-                <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.gold, letterSpacing: 3, marginBottom: 10, fontWeight: 600 }}>⚽ PRÒXIM PARTIT D'ESPANYA</div>
-                <div style={{ background: C.card, borderRadius: 12, padding: 16, marginBottom: 12, border: `1px solid ${C.red}`, position: "relative", overflow: "hidden" }}>
-                  <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
-                  <div style={{ fontFamily: "var(--pff2)", fontSize: 9, color: C.muted, letterSpacing: 2, marginBottom: 8, fontWeight: 600 }}>{espanyaActiveMatch.league}{espanyaActiveMatch.date ? ` · ${fmtDate(espanyaActiveMatch.date)}` : ""}</div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-                    <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 20, color: C.txt, textAlign: "right" }}>{espanyaActiveMatch.home}</span>
-                    <span style={{ color: C.muted, fontFamily: "var(--pff2)", fontSize: 11, fontWeight: 700 }}>VS</span>
-                    <span style={{ flex: 1, fontFamily: "var(--pff)", fontSize: 20, color: C.txt, textAlign: "left" }}>{espanyaActiveMatch.away}</span>
-                  </div>
-                  {espanyaMyEntry && (
-                    <div style={{ background: C.card2, borderRadius: 8, padding: "10px 12px", textAlign: "center", marginBottom: 10 }}>
-                      <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 1.5, fontWeight: 600 }}>LA TEVA APOSTA</div>
-                      <div style={{ fontFamily: "var(--pff)", fontSize: 28, color: C.red, marginTop: 4 }}>{espanyaMyEntry.home}–{espanyaMyEntry.away}</div>
-                      <div style={{ fontSize: 12, color: C.amber, marginTop: 4 }}>{espanyaMyEntry.amount}🍺 apostades</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                  <span style={{ width: 6, height: 6, background: C.red, borderRadius: "50%" }} />
+                  <span style={{ fontFamily: "var(--pff)", fontSize: 15, color: C.red, letterSpacing: 2 }}>⚽ PRÒXIM PARTIT D'ESPANYA</span>
+                  <span style={{ flex: 1, height: 1, background: C.border }} />
+                </div>
+                <div className="card-shadow" style={{ background: C.card, borderRadius: 16, marginBottom: 12, display: "flex", overflow: "hidden" }}>
+                  <div style={{ width: 4, background: C.red, flexShrink: 0 }} />
+                  <div style={{ flex: 1, padding: "16px 14px 16px 12px" }}>
+                    <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: C.muted, letterSpacing: 1.5, marginBottom: 10, fontWeight: 700 }}>{espanyaActiveMatch.league}{espanyaActiveMatch.date ? ` · ${fmtDate(espanyaActiveMatch.date)}` : ""}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 14 }}>
+                      <div style={{ flex: 1, textAlign: "right" }}>
+                        <div style={{ fontFamily: "var(--pff)", fontSize: 24, color: C.txt, letterSpacing: 1, lineHeight: 1 }}>{espanyaActiveMatch.home}</div>
+                        <FlagBadge name={espanyaActiveMatch.home} size={11} />
+                      </div>
+                      <span style={{ fontFamily: "var(--pff2)", fontSize: 13, color: C.muted, fontWeight: 700, minWidth: 40, textAlign: "center" }}>VS</span>
+                      <div style={{ flex: 1, textAlign: "left" }}>
+                        <div style={{ fontFamily: "var(--pff)", fontSize: 24, color: C.txt, letterSpacing: 1, lineHeight: 1 }}>{espanyaActiveMatch.away}</div>
+                        <FlagBadge name={espanyaActiveMatch.away} size={11} />
+                      </div>
                     </div>
-                  )}
-                  {!matchStarted(espanyaActiveMatch) && (
-                    <button onClick={() => setShowClasico(true)} disabled={!espanyaMyEntry && member.birras < CFG.ESPANYA_MIN_BET}
-                      style={{ width: "100%", background: C.red, color: "#fff", border: "none", borderRadius: 10, padding: "14px", fontFamily: "var(--pff)", fontSize: 20, letterSpacing: 2, cursor: "pointer", opacity: (!espanyaMyEntry && member.birras < CFG.ESPANYA_MIN_BET) ? 0.4 : 1 }}>
-                      {espanyaMyEntry ? "✏️ EDITAR APOSTA" : "🇪🇸 APOSTAR"}
-                    </button>
-                  )}
+                    {espanyaMyEntry && (
+                      <div style={{ background: "#FEE2E2", border: `1px solid #FCA5A5`, borderRadius: 10, padding: "10px 14px", textAlign: "center", marginBottom: 12 }}>
+                        <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.red, letterSpacing: 2, fontWeight: 700 }}>EL TEU PRONÒSTIC</div>
+                        <div style={{ fontFamily: "var(--pff)", fontSize: 32, color: C.red, marginTop: 4, lineHeight: 1 }}>{espanyaMyEntry.home}–{espanyaMyEntry.away}</div>
+                        <div style={{ fontSize: 12, color: "#7f1d1d", marginTop: 4, fontWeight: 600 }}>Aposta: {espanyaMyEntry.amount}🍺</div>
+                      </div>
+                    )}
+                    {!matchStarted(espanyaActiveMatch) && (
+                      <button onClick={() => setShowClasico(true)} disabled={!espanyaMyEntry && member.birras < CFG.ESPANYA_MIN_BET}
+                        style={{ ...sty.btnRed, width: "100%", opacity: (!espanyaMyEntry && member.birras < CFG.ESPANYA_MIN_BET) ? 0.4 : 1, cursor: (!espanyaMyEntry && member.birras < CFG.ESPANYA_MIN_BET) ? "not-allowed" : "pointer" }}>
+                        {espanyaMyEntry ? "✏️ EDITAR PRONÒSTIC" : "🇪🇸 APOSTAR 5🍺"}
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {espanyaMatchPot.entries.length > 0 && (
                   <>
-                    <div style={{ fontFamily: "var(--pff2)", fontSize: 10, color: C.muted, letterSpacing: 2, marginBottom: 8, marginTop: 14, fontWeight: 600 }}>JA APOSTEN ({espanyaMatchPot.entries.length})</div>
-                    <div style={{ background: C.card, borderRadius: 10, padding: 10, marginBottom: 16, border: `1px solid ${C.border}`, display: "flex", flexWrap: "wrap", gap: 6 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, marginTop: 14 }}>
+                      <span style={{ width: 6, height: 6, background: C.blue, borderRadius: "50%" }} />
+                      <span style={{ fontFamily: "var(--pff)", fontSize: 14, color: C.blue, letterSpacing: 2 }}>JA APOSTEN</span>
+                      <span style={{ flex: 1, height: 1, background: C.border }} />
+                      <span style={{ color: C.muted, fontSize: 12, fontWeight: 700 }}>{espanyaMatchPot.entries.length}</span>
+                    </div>
+                    <div className="card-shadow" style={{ background: C.card, borderRadius: 12, padding: 12, marginBottom: 16, display: "flex", flexWrap: "wrap", gap: 6 }}>
                       {espanyaMatchPot.entries.map(e => {
                         const info = memberInfo(e.memberId);
                         return (
-                          <div key={e.memberId} style={{ display: "flex", alignItems: "center", gap: 6, background: C.card2, padding: "4px 10px", borderRadius: 16, fontSize: 12 }}>
+                          <div key={e.memberId} style={{ display: "flex", alignItems: "center", gap: 6, background: C.bluePale, padding: "4px 10px", borderRadius: 16, fontSize: 12 }}>
                             <span style={{ fontSize: 16 }}>{info.emoji || "🍺"}</span>
                             <span style={{ color: C.txt }}>{info.name || "?"}{e.memberId === member.id ? " (tu)" : ""}</span>
                             <span style={{ color: C.amber, fontFamily: "var(--pff)", fontSize: 13 }}>{e.amount}🍺</span>
@@ -2314,7 +2344,7 @@ export default function App() {
         {tab === "ranking" && (
           <div>
             {currentGroup && (
-              <div style={{ background: "linear-gradient(135deg,#3a2800 0%, #1a1200 100%)", borderRadius: 14, padding: 14, marginBottom: 16, border: `1px solid ${C.amber}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ background: "linear-gradient(135deg,#FEF3C7 0%, #FDE68A 100%)", borderRadius: 14, padding: 14, marginBottom: 16, border: `1px solid ${C.amber}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
                   <div style={{ fontSize: 10, color: C.amber, fontFamily: "var(--pff)", letterSpacing: 2, marginBottom: 2 }}>POT DEL GRUP</div>
                   <div style={{ fontFamily: "var(--pff)", fontWeight: 900, fontSize: 26, color: C.gold, lineHeight: 1 }}>{fmtEUR(currentGroup.bote_EUR)}</div>
@@ -2374,7 +2404,7 @@ export default function App() {
               const prizeEUR = willWin ? currentGroup.bote_EUR * CFG.PRIZES[i] : 0;
               const flag = teamFlag(u.name);
               return (
-                <div key={u.id} style={{ background: isMe ? "linear-gradient(135deg,#2a1d00,#1a1200)" : C.card, border: `1px solid ${isMe ? C.gold : C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
+                <div key={u.id} style={{ background: isMe ? "linear-gradient(135deg,#FEF3C7,#FDE68A)" : C.card, border: `1px solid ${isMe ? C.gold : C.border}`, borderRadius: 12, padding: "12px 14px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ width: 30, textAlign: "center", fontFamily: "var(--pff)", fontWeight: 900, fontSize: i < 3 ? 24 : 16, color: i < 3 ? C.gold : C.muted }}>{["🥇", "🥈", "🥉"][i] || i + 1}</div>
                   <div style={{ width: 36, height: 36, borderRadius: "50%", background: isMe ? C.gold : C.card2, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, border: `1px solid ${isMe ? C.amber : C.border}` }}>{u.emoji}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -2646,8 +2676,7 @@ export default function App() {
       </div>
 
       {/* BOTTOM NAV */}
-      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: C.card, borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 50 }}>
-        <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+      <div style={{ position: "fixed", bottom: 0, left: "50%", transform: "translateX(-50%)", width: "100%", maxWidth: 480, background: C.card, borderTop: `1px solid ${C.border}`, display: "flex", zIndex: 50, boxShadow: "0 -2px 12px rgba(0,0,0,0.04)" }}>
         {[
           { id: "matches", i: "⚽", l: "PARTITS", badge: unbettedCount, urgent: hasUrgentUnbetted },
           { id: "jackpot", i: "🏆", l: "JACKPOT" },
@@ -2655,14 +2684,14 @@ export default function App() {
           { id: "stats", i: "📈", l: "STATS" },
           { id: "more", i: "⋯", l: "MÉS" },
         ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "10px 2px 8px", background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", borderTop: `2px solid ${tab === t.id ? C.gold : "transparent"}`, position: "relative" }}>
+          <button key={t.id} onClick={() => setTab(t.id)} style={{ flex: 1, padding: "12px 2px 10px", background: "none", border: "none", display: "flex", flexDirection: "column", alignItems: "center", gap: 3, cursor: "pointer", borderTop: `3px solid ${tab === t.id ? C.blue : "transparent"}`, position: "relative" }}>
             <span style={{ fontSize: 20, position: "relative" }}>
               {t.i}
               {t.badge > 0 && (
-                <span style={{ position: "absolute", top: -4, right: -10, minWidth: 16, height: 16, padding: "0 4px", background: t.urgent ? C.red : C.amber, color: t.urgent ? "#fff" : "#000", borderRadius: 8, fontSize: 10, fontWeight: 700, fontFamily: "var(--pff2)", display: "flex", alignItems: "center", justifyContent: "center", animation: t.urgent ? "pulse 1.5s ease-in-out infinite" : "none" }}>{t.badge}</span>
+                <span style={{ position: "absolute", top: -4, right: -10, minWidth: 16, height: 16, padding: "0 4px", background: t.urgent ? C.red : C.gold, color: "#fff", borderRadius: 8, fontSize: 10, fontWeight: 700, fontFamily: "var(--pff2)", display: "flex", alignItems: "center", justifyContent: "center", animation: t.urgent ? "pulse 1.5s ease-in-out infinite" : "none" }}>{t.badge}</span>
               )}
             </span>
-            <span style={{ fontSize: 9, color: tab === t.id ? C.gold : C.muted, fontFamily: "var(--pff2)", letterSpacing: 1, fontWeight: 600 }}>{t.l}</span>
+            <span style={{ fontSize: 9, color: tab === t.id ? C.blue : C.muted, fontFamily: "var(--pff2)", letterSpacing: 1, fontWeight: 700 }}>{t.l}</span>
           </button>
         ))}
       </div>
