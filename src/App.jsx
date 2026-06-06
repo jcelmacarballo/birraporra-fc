@@ -89,8 +89,14 @@ const teamFlag = (name) => { const n = findNation(name); return n ? n.f : ""; };
 
 // ─────────────────────────── 2. STORAGE & UTILS ───────────────────────────
 // Totes les dades es guarden en UN sol document a Supabase ("bporra_v10_all").
-// Així el polling fa 1 petició en lloc de 9. Les KEYS són les claus internes
-// dins d'aquest document.
+// ARQUITECTURA MULTI-USUARI ROBUSTA:
+// - El polling llegeix el document sencer (1 petició).
+// - CADA escriptura torna a llegir l'estat FRESC del servidor, hi fusiona el
+//   canvi, i el desa. Així dos dispositius que escriuen alhora no es trepitgen.
+// - Per als arrays amb {id} (grups, membres, apostes...) la fusió fa UNIÓ per id:
+//   es queden els items de tots dos, i el que escrius guanya en cas de conflicte.
+//   Això evita perdre dades quan diversos juguen alhora.
+// - Per esborrar (eliminar grup) es fa servir replace (merge:false).
 const DOC_KEY = "bporra_v10_all";
 const KEYS = {
   accounts: "accounts",
@@ -103,32 +109,26 @@ const KEYS = {
   chats: "chats",
   coinflips: "coinflips",
 };
+// Claus que són arrays d'objectes amb {id} → es fusionen per unió
+const ARRAY_ID_KEYS = ["accounts", "groups", "members", "matches", "bets"];
 
-// Caché local del document sencer
+// Caché local del document sencer (per a lectures ràpides i polling)
 let _docCache = null;
-// Versió local: cada cop que escrivim, l'incrementem. Permet detectar canvis locals
-// que el servidor encara no té propagats i no sobreescriure'ls amb el reload.
-let _localVersion = 0;
-let _serverVersion = 0;
-// Lock de "estem escrivint a Supabase": bloqueja reload durant l'escriptura
-let _writingLock = 0;
+// Cua d'escriptures: serialitza els dbSet perquè no es solapin entre ells al mateix dispositiu
+let _writeChain = Promise.resolve();
+
+function _mergeArrayById(serverArr, incomingArr) {
+  // Unió per id: tots els del servidor + tots els nostres (nosaltres guanyem en conflicte)
+  const map = new Map();
+  for (const it of (serverArr || [])) if (it && it.id != null) map.set(it.id, it);
+  for (const it of (incomingArr || [])) if (it && it.id != null) map.set(it.id, it);
+  return Array.from(map.values());
+}
 
 async function _loadDoc() {
   try {
     const doc = await db.get(DOC_KEY);
-    if (doc && typeof doc === "object") {
-      // Si el servidor té una versió més nova o no tenim caché, usem la del servidor
-      const sv = doc.__v || 0;
-      if (_docCache === null || sv >= _localVersion) {
-        _docCache = doc;
-        _serverVersion = sv;
-        _localVersion = sv;
-      }
-      // Si el local és més nou (acabem d'escriure i el servidor encara no ho té),
-      // mantenim el caché local i no el sobreescrivim
-    } else {
-      if (_docCache === null) _docCache = {};
-    }
+    _docCache = (doc && typeof doc === "object") ? doc : (_docCache || {});
   } catch {
     if (_docCache === null) _docCache = {};
   }
@@ -140,25 +140,26 @@ async function dbGet(k) {
   return _docCache[k] ?? null;
 }
 
-async function dbSet(k, v) {
-  if (_docCache === null) await _loadDoc();
-  _localVersion++;
-  _docCache = { ..._docCache, [k]: v, __v: _localVersion };
-  _writingLock++;
-  try {
-    await db.set(DOC_KEY, _docCache);
-    _serverVersion = _localVersion;
-  } catch (e) {
-    console.error("dbSet error", e);
-  } finally {
-    _writingLock--;
-  }
+// Escriu una clau. Per defecte fusiona (merge); per esborrar passa { merge: false }.
+async function dbSet(k, v, opts = {}) {
+  const { merge = true } = opts;
+  // Serialitzem: cada escriptura espera l'anterior (evita solapament al mateix dispositiu)
+  _writeChain = _writeChain.then(async () => {
+    let fresh = {};
+    try { fresh = (await db.get(DOC_KEY)) || {}; } catch { fresh = _docCache || {}; }
+    if (merge && Array.isArray(v) && ARRAY_ID_KEYS.includes(k)) {
+      fresh[k] = _mergeArrayById(fresh[k], v);
+    } else {
+      fresh[k] = v;
+    }
+    _docCache = fresh;
+    try { await db.set(DOC_KEY, fresh); } catch (e) { console.error("dbSet error", e); }
+  });
+  return _writeChain;
 }
 
-// Recarrega el document sencer de Supabase (1 petició). Bloqueja si hi ha una
-// escriptura pendent i preserva canvis locals encara no propagats.
+// Recarrega el document sencer de Supabase (1 petició). El polling l'usa.
 async function dbReloadAll() {
-  if (_writingLock > 0) return _docCache; // no recarreguis enmig d'una escriptura
   await _loadDoc();
   return _docCache;
 }
@@ -1806,12 +1807,12 @@ export default function App() {
     const ucl = { ...clasico };
     delete ucl[groupId];
     setGroups(ug); setMembers(um); setMatches(umt); setBets(ub); setClasico(ucl);
-    // SEQÜENCIAL: cada dbSet desa el document sencer
-    await dbSet(KEYS.groups, ug);
-    await dbSet(KEYS.members, um);
-    await dbSet(KEYS.matches, umt);
-    await dbSet(KEYS.bets, ub);
-    await dbSet(KEYS.clasico, ucl);
+    // REPLACE (merge:false): són arrays MÉS CURTS (esborrem), no s'han de fusionar
+    await dbSet(KEYS.groups, ug, { merge: false });
+    await dbSet(KEYS.members, um, { merge: false });
+    await dbSet(KEYS.matches, umt, { merge: false });
+    await dbSet(KEYS.bets, ub, { merge: false });
+    await dbSet(KEYS.clasico, ucl, { merge: false });
     if (activeGroupId === groupId) setActiveGroupId(null);
     showToast("Grup esborrat 🗑️", "success");
   };
@@ -2673,6 +2674,37 @@ export default function App() {
               <div style={{ fontSize: 12, color: C.muted, marginTop: 2 }}>Grup: {currentGroup?.name}</div>
               <div style={{ fontSize: 10, color: C.muted, marginTop: 4 }}>Toca l'emoji per canviar-lo</div>
             </div>
+
+            {/* CODI DEL GRUP + INVITACIÓ WHATSAPP */}
+            {currentGroup && (<>
+              <div style={sty.sectionH}>INVITA AL GRUP</div>
+              <div style={{ background: C.blue, borderRadius: 16, padding: "20px 16px", marginBottom: 14, position: "relative", overflow: "hidden", boxShadow: "0 4px 16px rgba(0,61,165,0.2)" }}>
+                <div className="mundial-stripe" style={{ position: "absolute", top: 0, left: 0, right: 0 }} />
+                <div style={{ fontFamily: "var(--pff2)", fontSize: 11, color: "rgba(255,255,255,0.6)", letterSpacing: 3, fontWeight: 700, marginBottom: 6 }}>CODI D'ENTRADA</div>
+                <div style={{ fontFamily: "var(--pff)", fontSize: 52, color: "#fff", letterSpacing: 8, lineHeight: 1, marginBottom: 8 }}>{currentGroup.joinCode}</div>
+                <div style={{ fontSize: 12, color: "rgba(255,255,255,0.65)", marginBottom: 16 }}>Comparteix aquest codi als teus amics perquè s'uneixin al grup <b style={{ color: "#fff" }}>{currentGroup.name}</b></div>
+
+                {/* Botó copiar codi */}
+                <button
+                  onClick={() => {
+                    navigator.clipboard?.writeText(currentGroup.joinCode).then(() => showToast("Codi copiat! 📋", "success")).catch(() => showToast(currentGroup.joinCode, "info"));
+                  }}
+                  style={{ width: "100%", background: "rgba(255,255,255,0.15)", color: "#fff", border: "1px solid rgba(255,255,255,0.3)", borderRadius: 10, padding: "11px", fontFamily: "var(--pff2)", fontSize: 14, fontWeight: 700, letterSpacing: 1, cursor: "pointer", marginBottom: 8 }}>
+                  📋 COPIAR CODI
+                </button>
+
+                {/* Botó invitació WhatsApp */}
+                <button
+                  onClick={() => {
+                    const appUrl = window.location.origin;
+                    const msg = `🏆 *BIRRAPORRA MUNDIAL 2026* 🏆\n\nHola! T'invito a jugar a les porres del Mundial amb nosaltres.\n\n📱 Obre l'app: ${appUrl}\n\n🔑 Codi del grup: *${currentGroup.joinCode}*\n\n_Registra't, entra el codi i a apostar! 🍺⚽_`;
+                    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+                  }}
+                  style={{ width: "100%", background: "#25D366", color: "#fff", border: "none", borderRadius: 10, padding: "13px", fontFamily: "var(--pff2)", fontSize: 15, fontWeight: 700, letterSpacing: 1, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                  <span style={{ fontSize: 20 }}>💬</span> ENVIAR PER WHATSAPP
+                </button>
+              </div>
+            </>)}
 
             <div style={sty.sectionH}>MINIJOCS</div>
             {/* Cara o Creu */}
